@@ -2,9 +2,11 @@ from ez_setup import use_setuptools
 use_setuptools()
 from setuptools import setup, find_packages
 
+from adalink import __version__
+
 
 setup(name              = 'adalink',
-      version           = '1.0.0',
+      version           = __version__,
       author            = 'Tony DiCola',
       author_email      = 'tdicola@adafruit.com',
       description       = 'Cross platform tool for programming chips using a J-link.',

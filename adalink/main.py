@@ -9,13 +9,16 @@ import argparse
 import logging
 import sys
 
+# Import version.
+from adalink import __version__
 # MUST have * import below to cause all cores to be loaded and available to
 # Core class subclasses list.
 from adalink.cores import *
 
 
 def main():
-    # Main program entry point.
+    # Main program entry point.  Start by printing the version of the tool.
+    print 'adalink version: {0}'.format(__version__)
 
     # Build map of available cores by looking at subclasses of the core type.
     # Key is the core name (in lower case) and value is the core class.
