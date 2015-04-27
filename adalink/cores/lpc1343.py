@@ -48,7 +48,7 @@ class LPC1343(Core):
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('loadfile {0}'.format(f))
+            commands.append('loadfile "{0}"'.format(f))
         commands.append('r')              # Reset
         commands.append('g')              # Run the MCU
         commands.append('q')              # Quit

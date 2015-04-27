@@ -60,7 +60,7 @@ class NRF51822(Core):
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('loadfile {0}'.format(f))
+            commands.append('loadfile "{0}"'.format(f))
         commands.append('sleep 1000')     # Delay 1000ms
         commands.append('r')              # Reset
         commands.append('q')              # Quit
