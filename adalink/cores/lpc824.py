@@ -1,8 +1,8 @@
 # LPC824 core implementation
 #
 # Author: Kevin Townsend
-from adalink.jlink import JLink
-from adalink.cores.core import Core
+from ..jlink import JLink
+from .core import Core
 import os
 
 # DEVICE ID register valueto name mapping

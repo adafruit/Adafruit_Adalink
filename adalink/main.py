@@ -10,10 +10,10 @@ import logging
 import sys
 
 # Import version.
-from adalink import __version__
+from . import __version__
 # MUST have * import below to cause all cores to be loaded and available to
 # Core class subclasses list.
-from adalink.cores import *
+from .cores import *
 
 
 def main():

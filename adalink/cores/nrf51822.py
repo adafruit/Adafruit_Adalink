@@ -1,8 +1,8 @@
 # nRF51822 core implementation
 #
 # Author: Tony DiCola
-from adalink.jlink import JLink
-from adalink.cores.core import Core
+from ..jlink import JLink
+from .core import Core
 import os
 
 # CONFIGID register HW ID value to name mapping.
