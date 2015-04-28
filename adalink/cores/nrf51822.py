@@ -23,6 +23,15 @@ SD_LOOKUP = {
     0xFFFF: 'None'
 }
 
+# CONFIGID register HW ID to Segger '-device' name mapping.
+# Segger ID List: https://www.segger.com/jlink_supported_devices.html
+SEGGER_LOOKUP = {
+    0x003c: 'nRF51822_xxAA',
+    0x0044: 'nRF51822_xxAA',
+    0x0083: 'nRF51822_xxAC',
+    0x0084: 'nRF51822_xxAC'
+}
+
 
 class NRF51822(Core):
     """nRF51822 core implementation."""
@@ -67,6 +76,15 @@ class NRF51822(Core):
         # Run commands.
         self._jlink.run_commands(commands)
 
+    def detect_segger_device_id(self):
+        """Attempts to detect the Segger device ID string for the chip."""
+        hwid = self._jlink.readreg16(0x1000005C)
+        hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
+        if "0x" not in hwstring:
+            return hwstring
+        else:
+            return "Unknown!"
+
     def info(self):
         """Print information about the connected nRF51822."""
         # Get the HWID register value and print it.
@@ -74,6 +92,9 @@ class NRF51822(Core):
         # available to use for reading register values too.
         hwid = self._jlink.readreg16(0x1000005C)
         print 'Hardware ID :', MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
+        # Try to detect the Segger Device ID string
+        seggerid = self.detect_segger_device_id()
+        print 'Segger ID   :', seggerid
         # Get the SD firmware version and print it.
         sdid = self._jlink.readreg16(0x0000300C)
         print 'SD Version  :', SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))

@@ -25,6 +25,11 @@ class Core(object):
         raise NotImplementedError
 
     @abstractmethod
+    def detect_segger_device_id(self):
+        """Attempts to detect the Segger device ID string for the chip."""
+        raise NotImplementedError
+
+    @abstractmethod
     def info(self):
         """Print diagnostic information about the CPU."""
         raise NotImplementedError

@@ -7,13 +7,26 @@ import os
 
 # DEVICE ID register valueto name mapping
 # See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
-DEVICEID_LOOKUP = {
+DEVICEID_CHIPNAME_LOOKUP = {
     0x2C42502B: 'LPC1311FHN33',
     0x2C40102B: 'LPC1313FHN33 or LPC1313FBD48',
     0x3D01402B: 'LPC1342FHN33 or LPC1342FBD48',
     0x3D00002B: 'LPC1343FHN33 or LPC1343FBD48',
     0x1816902B: 'LPC1311FHN33/01',
     0x1830102B: 'LPC1313FHN33/01 or LPC1313FBD48/01'
+}
+
+# DEVICE ID register value to Segger '-device' name mapping
+# See 'DEVICE_ID' in:
+# See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
+# Segger ID List: https://www.segger.com/jlink_supported_devices.html
+DEVICEID_SEGGER_LOOKUP = {
+    0x2C42502B: 'LPC1311',
+    0x2C40102B: 'LPC1313',
+    0x3D01402B: 'LPC1342',
+    0x3D00002B: 'LPC1343',
+    0x1816902B: 'LPC1311',
+    0x1830102B: 'LPC1313'
 }
 
 
@@ -55,12 +68,22 @@ class LPC1343(Core):
         # Run commands.
         self._jlink.run_commands(commands)
 
+    def detect_segger_device_id(self):
+        """Attempts to detect the Segger device ID string for the chip."""
+        hwid = self._jlink.readreg32(0x400483F8)
+        hwstring = DEVICEID_SEGGER_LOOKUP.get(hwid, '0x{0:08X}'.format(hwid))
+        if "0x" not in hwstring:
+            return hwstring
+        else:
+            return "Unknown!"
+
     def info(self):
         """Print information about the connected nRF51822."""
         # DEVICE ID = APB0 Base (0x40000000) + SYSCON Base (0x48000) + 3F4
         deviceid = self._jlink.readreg32(0x400483F4)
-        print 'Device ID :', DEVICEID_LOOKUP.get(deviceid, '0x{0:08X}'.format(
-            deviceid))
+        print 'Device ID :', DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
+                                                   '0x{0:08X}'.format(deviceid))
+        print 'Segger ID :', self.detect_segger_device_id()
 
     def is_connected(self):
         """Return True if the CPU is connected, otherwise returns False."""
