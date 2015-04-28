@@ -5,6 +5,8 @@ device.
 
 ## Installation
 
+For ease of use you can install the software so that it is available to run globally from within your terminal by following the steps below.  However if you'd like to more easily distribute and run the code without requiring an installation, skip down to 'Running Without Installation' steps below.
+
 ### Install
 
 On Linux and MacOS run: 
@@ -38,6 +40,22 @@ Then run the following to unintall adalink:
     sudo pip uninstall adalink
 
 Note on Windows the sudo part of the command should be omitted.
+
+### Running Without Installation
+
+To run the tool without having to install it simply clone the repository, navigate 
+to the repository's folder in a terminal (i.e. the directory with the setup.py file)
+and run:
+
+```
+python -m adalink.main
+```
+
+This will invoke the program as if you ran the `adalink` command.  All the command
+line parameters, etc. are the same and specified after the `-m adalink.main` part of
+the command.
+
+Note that you will still need JLink's executable in your path--see the steps below.
 
 ## Usage
 
