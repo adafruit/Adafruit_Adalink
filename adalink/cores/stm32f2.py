@@ -20,7 +20,7 @@ DEVICEID_SEGGER_LOOKUP = {
 }
 
 
-class STM32f2xx(Core):
+class STM32F205RG(Core):
     """STM32f2xx core implementation."""
 
     def __init__(self):
