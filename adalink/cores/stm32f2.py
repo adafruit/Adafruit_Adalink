@@ -47,7 +47,7 @@ class STM32F2(Core):
         """Program chip with provided list of hex files."""
         # Build list of commands to program hex files.
         commands = []
-        commands.append('erase')          # NVIC erase enabled
+        #commands.append('erase')          # NVIC erase enabled
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
