@@ -8,7 +8,7 @@ import os
 # DEVICE ID register valueto name mapping
 # See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
 DEVICEID_CHIPNAME_LOOKUP = {
-    0x411: 'STM32F205RG'
+    0x411: 'STM32F2xx'
 }
 
 # DEVICE ID register value to Segger '-device' name mapping
@@ -16,11 +16,11 @@ DEVICEID_CHIPNAME_LOOKUP = {
 # See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
 # Segger ID List: https://www.segger.com/jlink_supported_devices.html
 DEVICEID_SEGGER_LOOKUP = {
-    0x411: 'STM32F205RG'
+    0x411: 'STM32F2xx'
 }
 
 
-class STM32F205RG(Core):
+class STM32F2(Core):
     """STM32f2xx core implementation."""
 
     def __init__(self):
@@ -29,7 +29,7 @@ class STM32F205RG(Core):
         # device type, SWD, and speed.
         # For a list of known devices for the J-Link see the following URI:
         # https://www.segger.com/jlink_supported_devices.html
-        self._jlink = JLink(params='-device STM32f2xx -if swd -speed 1000')
+        self._jlink = JLink(params='-device STM32f205RG -if swd -speed 1000')
 
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
@@ -60,8 +60,8 @@ class STM32F205RG(Core):
 
     def detect_segger_device_id(self):
         """Attempts to detect the Segger device ID string for the chip."""
-        hwid = self._jlink.readreg32(0xE0042000)
-        hwstring = DEVICEID_SEGGER_LOOKUP.get(hwid, '0x{0:03X}'.format(hwid & 0xFFF))
+        hwid = self._jlink.readreg32(0xE0042000) & 0xFFF
+        hwstring = DEVICEID_SEGGER_LOOKUP.get(hwid, '0x{0:03X}'.format(hwid))
         if "0x" not in hwstring:
             return hwstring
         else:
@@ -70,9 +70,9 @@ class STM32F205RG(Core):
     def info(self):
         """Print information about the connected STM32f2xx."""
         # [0xE0042000] = CHIP_REVISION[31:16] + RESEVERED[15:12] + DEVICE_ID[11:0]
-        deviceid = self._jlink.readreg32(0xE0042000)
+        deviceid = self._jlink.readreg32(0xE0042000) & 0xFFF
         print 'Device ID :', DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
-                                                   '0x{0:03X}'.format(deviceid & 0xFFF))
+                                                   '0x{0:03X}'.format(deviceid))
         print 'Segger ID :', self.detect_segger_device_id()
 
     def is_connected(self):
