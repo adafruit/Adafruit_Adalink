@@ -6,17 +6,27 @@ from .core import Core
 import os
 
 # DEVICE ID register valueto name mapping
-# See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
 DEVICEID_CHIPNAME_LOOKUP = {
     0x411: 'STM32F2xx'
 }
 
 # DEVICE ID register value to Segger '-device' name mapping
-# See 'DEVICE_ID' in:
-# See 'DEVICE_ID' in: http://www.nxp.com/documents/user_manual/UM10375.pdf
 # Segger ID List: https://www.segger.com/jlink_supported_devices.html
 DEVICEID_SEGGER_LOOKUP = {
-    0x411: 'STM32F2xx'
+    0x411: 'STM32F205RG'
+}
+
+# REV_D name mapping
+# See Section 32.6.1 of the STM32F205 Reference Manual (DBGMDU_IDCODE)
+DEVICEID_CHIPREV_LOOKUP = {
+    0x1000: 'A (0x1000)',
+    0x1001: 'Z (0x1001)',
+    0x2000: 'B (0x2000)',
+    0x2001: 'Y (0x2001)',
+    0x2003: 'X (0x2003)',
+    0x2007: '1 (0x2007)',
+    0x200F: 'V (0x200F)',
+    0x201F: '2 (0x201F)'
 }
 
 
@@ -29,7 +39,7 @@ class STM32F2(Core):
         # device type, SWD, and speed.
         # For a list of known devices for the J-Link see the following URI:
         # https://www.segger.com/jlink_supported_devices.html
-        self._jlink = JLink(params='-device STM32f205RG -if swd -speed 1000')
+        self._jlink = JLink(params='-device STM32F205RG -if swd -speed 1000')
 
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
@@ -69,10 +79,13 @@ class STM32F2(Core):
 
     def info(self):
         """Print information about the connected STM32f2xx."""
-        # [0xE0042000] = CHIP_REVISION[31:16] + RESEVERED[15:12] + DEVICE_ID[11:0]
+        # [0xE0042000] = CHIP_REVISION[31:16] + RESERVED[15:12] + DEVICE_ID[11:0]
         deviceid = self._jlink.readreg32(0xE0042000) & 0xFFF
+        chiprev  = (self._jlink.readreg32(0xE0042000) & 0xFFFF0000) >> 16
         print 'Device ID :', DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
                                                    '0x{0:03X}'.format(deviceid))
+        print 'Chip Rev  :', DEVICEID_CHIPREV_LOOKUP.get(chiprev,
+                                                   '0x{0:04X}'.format(chiprev))
         print 'Segger ID :', self.detect_segger_device_id()
 
     def is_connected(self):
