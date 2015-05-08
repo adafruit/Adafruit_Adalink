@@ -6,35 +6,36 @@
 # using the adalink tool, so make it short and descriptive.
 #
 # Author: Tony DiCola
-from abc import abstractmethod
+import abc
 
 
 class Core(object):
+    __metaclass__ = abc.ABCMeta
     """Base class for adalink CPU core implementations."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
         programming if requested.
         """
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def program(self, hex_files):
         """Program chip with provided list of hex files."""
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def detect_segger_device_id(self):
         """Attempts to detect the Segger device ID string for the chip."""
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def info(self):
         """Print diagnostic information about the CPU."""
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def is_connected(self):
         """Return True if the CPU is connected, otherwise returns False."""
         raise NotImplementedError

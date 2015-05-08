@@ -1,7 +1,7 @@
 # adalink Segger JLink Controller
 #
 # Python interface to communicate with a JLink device using the native JLinkExe
-# tool provided by Segger.  Note that you must have installed Segger JLink 
+# tool provided by Segger.  Note that you must have installed Segger JLink
 # software from:
 #   https://www.segger.com/jlink-software.html
 #
@@ -18,6 +18,8 @@ import subprocess
 import tempfile
 import time
 
+from .errors import AdaLinkError
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class JLink(object):
     def __init__(self, jlink_exe=None, jlink_path='', params=None):
         """Create a new instance of the JLink communication class.  By default
         JLinkExe should be accessible in your system path and it will be used
-        to communicate with a connected JLink device.  
+        to communicate with a connected JLink device.
 
         You can override the JLinkExe executable name by specifying a value in
         the jlink_exe parameter.  You can also manually specify the path to the
@@ -35,7 +37,7 @@ class JLink(object):
         Optional command line arguments to JLinkExe can be provided in the
         params parameter as a string.
         """
-        # If not provided, pick the appropriate JLinkExe name based on the 
+        # If not provided, pick the appropriate JLinkExe name based on the
         # platform:
         # - Linux   = JLinkExe
         # - Mac     = JLinkExe
@@ -49,7 +51,7 @@ class JLink(object):
             elif system == 'Darwin':
                 jlink_exe = 'JLinkExe'
             else:
-                raise RuntimeError('Unsupported system: {0}'.format(system))
+                raise AdaLinkError('Unsupported system: {0}'.format(system))
         # Store the path to the JLinkExe tool so it can later be run.
         self._jlink_path = os.path.join(jlink_path, jlink_exe)
         logger.info('Using path to JLinkExe: {0}'.format(self._jlink_path))
@@ -71,8 +73,8 @@ class JLink(object):
             process = subprocess.Popen(args, stdout=subprocess.PIPE)
             process.wait()
         except OSError:
-            print('\'{0}\' missing. Is the J-Link folder in your system '
-                  'path?'.format(self._jlink_path))
+            raise AdaLinkError("'{0}' missing. Is the J-Link folder in your system "
+                               "path?".format(self._jlink_path))
             sys.exit(-1)
 
     def run_filename(self, filename, timeout_sec=60):
@@ -99,14 +101,14 @@ class JLink(object):
             if process.returncode is None:
                 # Kill the process and raise error.
                 process.kill()
-                raise RuntimeError('JLinkExe process exceeded timeout!')
+                raise AdaLinkError('JLinkExe process exceeded timeout!')
         # Grab output of JLinkExe.
         output, err = process.communicate()
         logger.debug('JLink response: {0}'.format(output))
         return output
 
     def run_commands(self, commands, timeout_sec=60):
-        """Run the provided list of commands with JLinkExe.  Commands should be 
+        """Run the provided list of commands with JLinkExe.  Commands should be
         a list of strings with with JLinkExe commands to run.  Returns the
         output of JLinkExe.  If execution takes longer than timeout_sec an
         exception will be thrown. Set timeout_sec to None to disable the timeout
@@ -136,7 +138,7 @@ class JLink(object):
         if match:
             return int(match.group(1), 16)
         else:
-            raise RuntimeError('Could not find expected register value, are the J-Link and board connected?')
+            raise AdaLinkError('Could not find expected register value, are the J-Link and board connected?')
 
     def readreg32(self, register):
         return self._readreg(register, 'mem32')
