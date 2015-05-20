@@ -39,7 +39,7 @@ class STM32F2(Core):
         # device type, SWD, and speed.
         # For a list of known devices for the J-Link see the following URI:
         # https://www.segger.com/jlink_supported_devices.html
-        self._jlink = JLink(params='-device STM32F205RG -if swd -speed 1000')
+        self._jlink = JLink(params='-device STM32F205RG -if swd -speed 2000')
 
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
@@ -47,6 +47,7 @@ class STM32F2(Core):
         """
         # Build list of commands to wipe memory.
         commands = []
+        commands.append('r')              # Reset
         commands.append('erase')          # NVIC erase enabled
         commands.append('r')              # Reset
         commands.append('q')              # Quit
@@ -57,7 +58,7 @@ class STM32F2(Core):
         """Program chip with provided list of hex files."""
         # Build list of commands to program hex files.
         commands = []
-        #commands.append('erase')          # NVIC erase enabled
+
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
