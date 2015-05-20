@@ -58,6 +58,7 @@ class STM32F2(Core):
         """Program chip with provided list of hex files."""
         # Build list of commands to program hex files.
         commands = []
+        commands.append('r')              # Reset
 
         # Program each hex file.
         for f in hex_files:
