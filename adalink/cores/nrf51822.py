@@ -2,7 +2,7 @@
 #
 # Author: Tony DiCola
 from ..jlink import JLink
-from .core import Core
+from ..core import Core
 import os
 
 # CONFIGID register HW ID value to name mapping.
@@ -36,7 +36,7 @@ SEGGER_LOOKUP = {
 class NRF51822(Core):
     """nRF51822 core implementation."""
 
-    def __init__(self):
+    def __init__(self, args):
         """Create instance of nRF51822 core."""
         # Initialize communication with the JLink device using nRF51822-specific
         # device type, SWD, and speed.

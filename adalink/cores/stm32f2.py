@@ -2,7 +2,7 @@
 #
 # Author: Kevin Townsend
 from ..jlink import JLink
-from .core import Core
+from ..core import Core
 import os
 
 # DEVICE ID register valueto name mapping
@@ -33,7 +33,7 @@ DEVICEID_CHIPREV_LOOKUP = {
 class STM32F2(Core):
     """STM32f2xx core implementation."""
 
-    def __init__(self):
+    def __init__(self, args):
         """Create instance of STM32f2xx core."""
         # Initialize communication with the JLink device using STM32f2xx-specific
         # device type, SWD, and speed.
