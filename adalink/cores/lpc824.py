@@ -2,7 +2,7 @@
 #
 # Author: Kevin Townsend
 from ..jlink import JLink
-from .core import Core
+from ..core import Core
 import os
 
 # DEVICE ID register value to name mapping
@@ -42,7 +42,7 @@ DEVICEID_SEGGER_LOOKUP = {
 class LPC824(Core):
     """LPC824 core implementation."""
 
-    def __init__(self):
+    def __init__(self, args):
         """Create instance of LPC824 core."""
         # Initialize communication with the JLink device using LPC824-specific
         # device type, SWD, and speed.
