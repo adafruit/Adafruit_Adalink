@@ -1,4 +1,4 @@
-# adalink Segger JLink Controller
+# adalink Segger JLink Programmer
 #
 # Python interface to communicate with a JLink device using the native JLinkExe
 # tool provided by Segger.  Note that you must have installed Segger JLink
@@ -18,13 +18,15 @@ import subprocess
 import tempfile
 import time
 
-from .errors import AdaLinkError
+from .base import Programmer
+from ..errors import AdaLinkError
 
 
 logger = logging.getLogger(__name__)
 
 
-class JLink(object):
+class JLink(Programmer):
+    
     def __init__(self, jlink_exe=None, jlink_path='', params=None):
         """Create a new instance of the JLink communication class.  By default
         JLinkExe should be accessible in your system path and it will be used
@@ -64,8 +66,7 @@ class JLink(object):
         self._test_jlinkexe()
 
     def _test_jlinkexe(self):
-        """Checks if JLinkExe is found in the system path or not
-        """
+        """Checks if JLinkExe is found in the system path or not."""
         # Spawn JLinkExe process and capture its output.
         args = [self._jlink_path]
         args.append('?')
@@ -75,7 +76,6 @@ class JLink(object):
         except OSError:
             raise AdaLinkError("'{0}' missing. Is the J-Link folder in your system "
                                "path?".format(self._jlink_path))
-            sys.exit(-1)
 
     def run_filename(self, filename, timeout_sec=60):
         """Run the provided script with JLinkExe.  Filename should be a path to
@@ -123,28 +123,59 @@ class JLink(object):
         logger.debug('Running JLink commands: {0}'.format(commands))
         return self.run_filename(script_file.name, timeout_sec)
 
-    def _readreg(self, register, command):
+    def _readmem(self, address, command):
         """Read the specified register with the provided register read command.
         """
         # Build list of commands to read register.
-        register = '{0:08X}'.format(register)  # Convert register value to hex string.
+        address = '{0:08X}'.format(address)  # Convert address value to hex string.
         commands = []
-        commands.append('{0} {1} 1'.format(command, register))
+        commands.append('{0} {1} 1'.format(command, address))
         commands.append('q')
         # Run command and parse output for register value.
         output = self.run_commands(commands)
-        match = re.search('^{0} = (\S+)'.format(register), output,
+        match = re.search('^{0} = (\S+)'.format(address), output,
                           re.IGNORECASE | re.MULTILINE)
         if match:
             return int(match.group(1), 16)
         else:
             raise AdaLinkError('Could not find expected register value, are the J-Link and board connected?')
+    
+    def wipe(self):
+        """Wipe clean the flash memory of the device.  Will happen before any
+        programming if requested.
+        """
+        # Build list of commands to wipe memory.
+        commands = []
+        commands.append('r')      # Reset
+        commands.append('erase')  # Erase
+        commands.append('r')      # Reset
+        commands.append('q')      # Quit
+        # Run commands.
+        self.run_commands(commands)
 
-    def readreg32(self, register):
-        return self._readreg(register, 'mem32')
+    def program(self, hex_files):
+        """Program chip with provided list of hex files."""
+        # Build list of commands to program hex files.
+        commands = []
+        commands.append('r')              # Reset
+        # Program each hex file.
+        for f in hex_files:
+            f = os.path.abspath(f)
+            commands.append('loadfile "{0}"'.format(f))
+        commands.append('r')              # Reset
+        commands.append('g')              # Run the MCU
+        commands.append('q')              # Quit
+        # Run commands.
+        self.run_commands(commands)
 
-    def readreg16(self, register):
-        return self._readreg(register, 'mem16')
+    def readmem32(self, address):
+        """Read a 32-bit value from the provided memory address."""
+        return self._readmem(address, 'mem32')
 
-    def readreg8(self, register):
-        return self._readreg(register, 'mem8')
+    def readmem16(self, address):
+        """Read a 16-bit value from the provided memory address."""
+        return self._readmem(address, 'mem16')
+
+    def readmem8(self, address):
+        """Read a 8-bit value from the provided memory address."""
+        return self._readmem(address, 'mem8')

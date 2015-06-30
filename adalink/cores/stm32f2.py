@@ -1,9 +1,12 @@
 # STM32f2xx core implementation
 #
 # Author: Kevin Townsend
-from ..jlink import JLink
-from ..core import Core
-import os
+import click
+
+from ..errors import AdaLinkError
+from ..main import main
+from ..programmers.jlink import JLink
+
 
 # DEVICE ID register valueto name mapping
 DEVICEID_CHIPNAME_LOOKUP = {
@@ -30,70 +33,61 @@ DEVICEID_CHIPREV_LOOKUP = {
 }
 
 
-class STM32F2(Core):
-    """STM32f2xx core implementation."""
-
-    def __init__(self, args):
-        """Create instance of STM32f2xx core."""
-        # Initialize communication with the JLink device using STM32f2xx-specific
-        # device type, SWD, and speed.
-        # For a list of known devices for the J-Link see the following URI:
-        # https://www.segger.com/jlink_supported_devices.html
-        self._jlink = JLink(params='-device STM32F205RG -if swd -speed 2000')
-
-    def wipe(self):
-        """Wipe clean the flash memory of the device.  Will happen before any
-        programming if requested.
-        """
-        # Build list of commands to wipe memory.
-        commands = []
-        commands.append('r')              # Reset
-        commands.append('erase')          # NVIC erase enabled
-        commands.append('r')              # Reset
-        commands.append('q')              # Quit
-        # Run commands.
-        self._jlink.run_commands(commands)
-
-    def program(self, hex_files):
-        """Program chip with provided list of hex files."""
-        # Build list of commands to program hex files.
-        commands = []
-        commands.append('r')              # Reset
-
-        # Program each hex file.
-        for f in hex_files:
-            f = os.path.abspath(f)
-            commands.append('loadfile "{0}"'.format(f))
-        commands.append('r')              # Reset
-        commands.append('g')              # Run the MCU
-        commands.append('q')              # Quit
-        # Run commands.
-        self._jlink.run_commands(commands)
-
-    def detect_segger_device_id(self):
-        """Attempts to detect the Segger device ID string for the chip."""
-        hwid = self._jlink.readreg32(0xE0042000) & 0xFFF
+@main.group(chain=True)  # chain = True means multiple subcommands can be sent.
+@click.option('-p', '--programmer', required=True, help='Programmer type.',
+              type=click.Choice(['jlink', 'stlink']))
+# Note that core-specific parameters could be defined here, like a core subtype.
+@click.pass_context
+def stm32f2(ctx, programmer):
+    """STMicro STM32F2 CPU."""
+    # Save the selected programmer in the context so commands can access it.
+    if programmer == 'jlink':
+        jlink = JLink(params='-device STM32F205RG -if swd -speed 2000')
+        ctx.obj['programmer'] = jlink
+        # Verify the CPU is connected.
+        output = jlink.run_commands(['q'])
+        if output.find('Info: Found Cortex-M3 r2p0, Little endian.') == -1:
+            raise AdaLinkError('Could not find STM32F2 connected to JLink!')
+        # Grab the Segger device ID value.
+        hwid = jlink.readmem32(0xE0042000) & 0xFFF
         hwstring = DEVICEID_SEGGER_LOOKUP.get(hwid, '0x{0:03X}'.format(hwid))
-        if "0x" not in hwstring:
-            return hwstring
-        else:
-            return "Unknown!"
+        if '0x' not in hwstring:
+            # Found a Segger device ID, save it in the context for reading later.
+            ctx.obj['seggerid'] = hwstring
+    elif programmer == 'stlink':
+        raise NotImplementedError('Not implemented!')
 
-    def info(self):
-        """Print information about the connected STM32f2xx."""
-        # [0xE0042000] = CHIP_REVISION[31:16] + RESERVED[15:12] + DEVICE_ID[11:0]
-        deviceid = self._jlink.readreg32(0xE0042000) & 0xFFF
-        chiprev  = (self._jlink.readreg32(0xE0042000) & 0xFFFF0000) >> 16
-        print 'Device ID :', DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
-                                                   '0x{0:03X}'.format(deviceid))
-        print 'Chip Rev  :', DEVICEID_CHIPREV_LOOKUP.get(chiprev,
-                                                   '0x{0:04X}'.format(chiprev))
-        print 'Segger ID :', self.detect_segger_device_id()
+@stm32f2.command()
+@click.pass_context
+def wipe(ctx):
+    """Wipe the flash memory of the device."""
+    programmer = ctx.obj['programmer']
+    programmer.wipe()
 
-    def is_connected(self):
-        """Return True if the CPU is connected, otherwise returns False."""
-        # Run JLink and verify output has expected CPU type found.  Only a 'q'
-        # command is sent to ensure J-Link runs and immediately quits (after
-        # printing some debug output).
-        output = self._jlink.run_commands(['q'])
-        return output.find('Info: Found Cortex-M3 r2p0, Little endian.') != -1
+@stm32f2.command()
+@click.argument('file', type=click.Path(exists=True))
+@click.pass_context
+def program(ctx, file):
+    """Program the provided hex file to the device.
+    
+    The path to the .hex file should be provided as the only argument.
+    """
+    programmer = ctx.obj['programmer']
+    programmer.program([file])
+
+@stm32f2.command()
+@click.pass_context
+def info(ctx):
+    """Display information about the device."""
+    programmer = ctx.obj['programmer']
+    # [0xE0042000] = CHIP_REVISION[31:16] + RESERVED[15:12] + DEVICE_ID[11:0]
+    deviceid = programmer.readmem32(0xE0042000) & 0xFFF
+    chiprev  = (programmer.readmem32(0xE0042000) & 0xFFFF0000) >> 16
+    click.echo('Device ID : {0}'.format(DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
+                                               '0x{0:03X}'.format(deviceid))))
+    click.echo('Chip Rev  : {0}'.format(DEVICEID_CHIPREV_LOOKUP.get(chiprev,
+                                               '0x{0:04X}'.format(chiprev))))
+    # Try to detect the Segger Device ID string and print it if it was set.
+    seggerid = ctx.obj.get('seggerid', None)
+    if seggerid is not None:
+        click.echo('Segger ID : {0}'.format(seggerid))
