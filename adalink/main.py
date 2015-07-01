@@ -3,6 +3,7 @@ import logging
 import click
 
 from . import __version__
+from .core import Core
 
 
 @click.group(subcommand_metavar='CORE')
@@ -27,10 +28,13 @@ def main(ctx, verbose):
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
 
+
 # Import all the cores.  Must be done after the main function above or else
 # there will be a circular reference.  Also MUST be a * reference to ensure all
 # the cores are dynamically loaded.
 from .cores import *
+for core in Core.__subclasses__():
+    main.add_command(core())
 
 
 if __name__ == '__main__':

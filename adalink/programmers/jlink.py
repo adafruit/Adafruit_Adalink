@@ -27,7 +27,10 @@ logger = logging.getLogger(__name__)
 
 class JLink(Programmer):
     
-    def __init__(self, jlink_exe=None, jlink_path='', params=None):
+    # Name used to identify this programmer on the command line.
+    name = 'jlink'
+    
+    def __init__(self, connected, jlink_exe=None, jlink_path='', params=None):
         """Create a new instance of the JLink communication class.  By default
         JLinkExe should be accessible in your system path and it will be used
         to communicate with a connected JLink device.
@@ -39,6 +42,7 @@ class JLink(Programmer):
         Optional command line arguments to JLinkExe can be provided in the
         params parameter as a string.
         """
+        self._connected = connected
         # If not provided, pick the appropriate JLinkExe name based on the
         # platform:
         # - Linux   = JLinkExe
@@ -139,6 +143,11 @@ class JLink(Programmer):
             return int(match.group(1), 16)
         else:
             raise AdaLinkError('Could not find expected memory value, are the JLink and board connected?')
+    
+    def is_connected(self):
+        """Return true if the device is connected to the programmer."""
+        output = self.run_commands(['q'])
+        return output.find('Info: Found {0}'.format(self._connected)) != -1
     
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any

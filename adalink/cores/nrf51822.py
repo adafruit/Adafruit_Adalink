@@ -3,8 +3,7 @@
 # Author: Tony DiCola
 import click
 
-from ..errors import AdaLinkError
-from ..main import main
+from ..core import Core
 from ..programmers import JLink, STLink
 
 
@@ -36,81 +35,58 @@ SEGGER_LOOKUP = {
 }
 
 
-@main.group(chain=True)  # chain = True means multiple subcommands can be sent.
-@click.option('-p', '--programmer', required=True, help='Programmer type.',
-              type=click.Choice(['jlink', 'stlink']))
-# Note that core-specific parameters could be defined here, like a core subtype.
-@click.pass_context
-def nrf51822(ctx, programmer):
+class nRF51822(Core):
     """Nordic nRF51822 CPU."""
-    if programmer == 'jlink':
-        # Create JLink programmer and save it in the context so commands can
-        # access it.
-        jlink = JLink(params='-device nrf51822_xxaa -if swd -speed 1000')
-        ctx.obj['programmer'] = jlink
-        # Verify the CPU is connected.
-        output = jlink.run_commands(['q'])
-        if output.find('Info: Found Cortex-M0 r0p0, Little endian.') == -1:
-            raise AdaLinkError('Could not find nRF51822 connected to JLink!')
-        # Grab the Segger device ID value.
-        hwid = jlink.readmem16(0x1000005C)
-        hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
-        if '0x' not in hwstring:
-            # Found a Segger device ID, save it in the context for reading later.
-            ctx.obj['seggerid'] = hwstring
-    elif programmer == 'stlink':
-        # Create JLink programmer and save it in the context so commands can
-        # access it.
-        stlink = STLink('nrf51',
-                        params='-f interface/stlink-v2.cfg -f target/nrf51.cfg')
-        ctx.obj['programmer'] = stlink
-
-@nrf51822.command()
-@click.pass_context
-def wipe(ctx):
-    """Wipe the flash memory of the device."""
-    programmer = ctx.obj['programmer']
-    programmer.wipe()
-
-@nrf51822.command()
-@click.argument('file', type=click.Path(exists=True))
-@click.pass_context
-def program(ctx, file):
-    """Program the provided hex file to the device.
+    # Note that the docstring will be used as the short help description.
     
-    The path to the .hex file should be provided as the only argument.
-    """
-    programmer = ctx.obj['programmer']
-    programmer.program([file])
-
-@nrf51822.command()
-@click.pass_context
-def info(ctx):
-    """Display information about the device."""
-    programmer = ctx.obj['programmer']
-    # Get the HWID register value and print it.
-    # Note for completeness there are also readmem32 and readmem8 functions 
-    # available to use for reading memory values too.
-    hwid = programmer.readmem16(0x1000005C)
-    click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))))
-    # Try to detect the Segger Device ID string and print it if it was set.
-    seggerid = ctx.obj.get('seggerid', None)
-    if seggerid is not None:
-        click.echo('Segger ID   : {0}'.format(seggerid))
-    # Get the SD firmware version and print it.
-    sdid = programmer.readmem16(0x0000300C)
-    click.echo('SD Version  : {0}'.format(SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))))
-    # Get the BLE Address and print it.
-    addr_high = (programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
-    addr_low  = programmer.readmem32(0x100000a4)
-    click.echo('Device Addr : {0:02X}:{1:02X}:{2:02X}:{3:02X}:{4:02X}:{' \
-               '5:02X}'.format((addr_high >> 8) & 0xFF,
-                               (addr_high) & 0xFF,
-                               (addr_low >> 24) & 0xFF,
-                               (addr_low >> 16) & 0xFF,
-                               (addr_low >> 8) & 0xFF,
-                               (addr_low & 0xFF)))
-    # Get device ID.
-    did_high = programmer.readmem32(0x10000060)
-    did_low  = programmer.readmem32(0x10000064)
-    click.echo('Device ID   : {0:08X}{1:08X}'.format(did_high, did_low))
+    # Define the list of supported programmer types.  This should be a dict
+    # with the name of a programmer (as specified in the --programmer option)
+    # as the key and a tuple with the type, array of constructor positional
+    # args, and dict of constructor keyword args as the value.
+    programmers = {
+        'jlink': (
+            JLink, 
+            ['Cortex-M0 r0p0, Little endian'],  # String to expect when connected.
+            { 'params': '-device nrf51822_xxaa -if swd -speed 1000' }
+        ),
+        'stlink': (
+            STLink,
+            ['nrf51'],  # OpenOCD flash driver name for mass_erase.
+            { 'params': '-f interface/stlink-v2.cfg -f target/nrf51.cfg' }
+        )
+    }
+    
+    def __init__(self):
+        # Call base class constructor.
+        super(nRF51822, self).__init__()
+    
+    def info(self):
+        """Display info about the device."""
+        # Get the HWID register value and print it.
+        # Note for completeness there are also readmem32 and readmem8 functions 
+        # available to use for reading memory values too.
+        hwid = self.programmer.readmem16(0x1000005C)
+        click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))))
+        # Try to detect the Segger Device ID string and print it if using JLink
+        if isinstance(self.programmer, JLink):
+            hwid = self.programmer.readmem16(0x1000005C)
+            hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
+            if '0x' not in hwstring:
+                click.echo('Segger ID   : {0}'.format(hwstring))
+        # Get the SD firmware version and print it.
+        sdid = self.programmer.readmem16(0x0000300C)
+        click.echo('SD Version  : {0}'.format(SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))))
+        # Get the BLE Address and print it.
+        addr_high = (self.programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
+        addr_low  = self.programmer.readmem32(0x100000a4)
+        click.echo('Device Addr : {0:02X}:{1:02X}:{2:02X}:{3:02X}:{4:02X}:{' \
+                   '5:02X}'.format((addr_high >> 8) & 0xFF,
+                                   (addr_high) & 0xFF,
+                                   (addr_low >> 24) & 0xFF,
+                                   (addr_low >> 16) & 0xFF,
+                                   (addr_low >> 8) & 0xFF,
+                                   (addr_low & 0xFF)))
+        # Get device ID.
+        did_high = self.programmer.readmem32(0x10000060)
+        did_low  = self.programmer.readmem32(0x10000064)
+        click.echo('Device ID   : {0:08X}{1:08X}'.format(did_high, did_low))

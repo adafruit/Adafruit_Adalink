@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 class STLink(Programmer):
     
+    # Name used to identify this programmer on the command line.
+    name = 'stlink'
+    
     def __init__(self, flash_driver, openocd_exe=None, openocd_path='', 
                  params=None):
         """Create a new instance of the STLink communication class.  By default
@@ -127,6 +130,11 @@ class STLink(Programmer):
             return int(match.group(1), 16)
         else:
             raise AdaLinkError('Could not find expected memory value, are the STLink and board connected?')
+    
+    def is_connected(self):
+        """Return true if the device is connected to the programmer."""
+        output = self.run_commands(['init', 'exit'])
+        return output.find('Error:') == -1
     
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any

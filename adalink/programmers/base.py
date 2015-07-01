@@ -13,6 +13,11 @@ class Programmer(object):
     """Base class for adalink CPU programmer implementations."""
 
     @abc.abstractmethod
+    def is_connected(self):
+        """Return true if the device is connected to the programmer."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
         programming if requested.
