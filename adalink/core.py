@@ -36,15 +36,15 @@ class Core(click.Command):
         # Check that programmer is connected to device.
         if not self.programmer.is_connected():
             raise AdaLinkError('Could not find {0}, is it connected?'.format(self.name))
-        # Display information if requested.
-        if info:
-            self.info()
         # Wipe flash memory if requested.
         if wipe:
             self.programmer.wipe()
         # Program the specified files.
         if len(program_hex) > 0:
             self.programmer.program(program_hex)
+        # Display information if requested.
+        if info:
+            self.info()
             
     def info(self):
         """Display information about the device."""
