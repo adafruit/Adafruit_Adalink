@@ -5,7 +5,7 @@ import click
 
 from ..errors import AdaLinkError
 from ..main import main
-from ..programmers.jlink import JLink
+from ..programmers import JLink, STLink
 
 
 # CONFIGID register HW ID value to name mapping.
@@ -59,7 +59,11 @@ def nrf51822(ctx, programmer):
             # Found a Segger device ID, save it in the context for reading later.
             ctx.obj['seggerid'] = hwstring
     elif programmer == 'stlink':
-        raise NotImplementedError('Not implemented!')
+        # Create JLink programmer and save it in the context so commands can
+        # access it.
+        stlink = STLink('nrf51',
+                        params='-f interface/stlink-v2.cfg -f target/nrf51.cfg')
+        ctx.obj['programmer'] = stlink
 
 @nrf51822.command()
 @click.pass_context

@@ -138,7 +138,7 @@ class JLink(Programmer):
         if match:
             return int(match.group(1), 16)
         else:
-            raise AdaLinkError('Could not find expected register value, are the J-Link and board connected?')
+            raise AdaLinkError('Could not find expected memory value, are the JLink and board connected?')
     
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
