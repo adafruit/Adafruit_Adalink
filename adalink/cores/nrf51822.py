@@ -40,11 +40,11 @@ SEGGER_LOOKUP = {
 class STLink_nRF51822(STLink):
     # nRF51822-specific STLink-based programmer.  Required to add custom
     # wipe and erase before programming needed for the nRF51822 & OpenOCD.
-    
+
     def __init__(self):
         # Call base STLink initializer and set it up to program the nRF51822.
         super(STLink_nRF51822, self).__init__(params='-f interface/stlink-v2.cfg -f target/nrf51.cfg')
-    
+
     def wipe(self):
         # Run OpenOCD commands to wipe nRF51822 memory.
         commands = [
@@ -60,7 +60,7 @@ class STLink_nRF51822(STLink):
         # Program the nRF51822 with the provided hex files.  Note that programming
         # the soft device and bootloader requires erasing the memory so it will
         # always be done.
-        click.echo('WARNING: Flash memory must be erased before programming nRF51822 with the STLink!')
+        click.echo('WARNING: Flash memory will be erased before programming nRF51822 with the STLink!')
         commands = [
             'init',
             'reset init',
@@ -79,15 +79,15 @@ class STLink_nRF51822(STLink):
 class nRF51822(Core):
     """Nordic nRF51822 CPU."""
     # Note that the docstring will be used as the short help description.
-    
+
     def __init__(self):
         # Call base class constructor--MUST be done!
         super(nRF51822, self).__init__()
-    
+
     def list_programmers(self):
         """Return a list of the programmer names supported by this CPU."""
         return ['jlink', 'stlink']
-    
+
     def create_programmer(self, programmer):
         """Create and return a programmer instance that will be used to program
         the core.  Must be implemented by subclasses!
@@ -97,11 +97,11 @@ class nRF51822(Core):
                          params='-device nrf51822_xxaa -if swd -speed 1000')
         elif programmer == 'stlink':
             return STLink_nRF51822()
-    
+
     def info(self, programmer):
         """Display info about the device."""
         # Get the HWID register value and print it.
-        # Note for completeness there are also readmem32 and readmem8 functions 
+        # Note for completeness there are also readmem32 and readmem8 functions
         # available to use for reading memory values too.
         hwid = programmer.readmem16(0x1000005C)
         click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))))
