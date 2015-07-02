@@ -26,15 +26,10 @@ class STLink(Programmer):
     # Name used to identify this programmer on the command line.
     name = 'stlink'
     
-    def __init__(self, flash_driver, openocd_exe=None, openocd_path='', 
-                 params=None):
+    def __init__(self, openocd_exe=None, openocd_path='', params=None):
         """Create a new instance of the STLink communication class.  By default
         OpenOCD should be accessible in your system path and it will be used
         to communicate with a connected STLink device.
-        
-        Flash_driver must specify the name of the OpenOCD flash driver for
-        running the mass_erase command (see http://openocd.org/doc/html/Flash-Commands.html,
-        for example 'nrf51' is the flash driver name for the nRF51 series chips).
 
         You can override the OpenOCD executable name by specifying a value in
         the openocd_exe parameter.  You can also manually specify the path to the
@@ -43,7 +38,6 @@ class STLink(Programmer):
         Optional command line arguments to OpenOCD can be provided in the
         params parameter as a string.
         """
-        self._flash_driver = flash_driver
         # If not provided, pick the appropriate OpenOCD name based on the
         # platform:
         # - Linux   = openocd
@@ -117,10 +111,11 @@ class STLink(Programmer):
         """
         # Build list of commands to read register.
         address = '0x{0:08X}'.format(address)  # Convert address value to hex string.
-        commands = []
-        commands.append('init')
-        commands.append('{0} {1}'.format(command, address))
-        commands.append('exit')
+        commands = [
+            'init',
+            '{0} {1}'.format(command, address),
+            'exit'
+        ]
         # Run command and parse output for register value.
         output = self.run_commands(commands)
         match = re.search('^{0}: (\S+)'.format(address), output,
@@ -139,34 +134,26 @@ class STLink(Programmer):
         """Wipe clean the flash memory of the device.  Will happen before any
         programming if requested.
         """
-        # Build list of commands to wipe memory.
-        commands = []
-        commands.append('init')
-        commands.append('reset init')
-        commands.append('halt')
-        commands.append('{0} mass_erase'.format(self._flash_driver))
-        commands.append('exit')
-        # Run commands.
-        self.run_commands(commands)
+        # There is no general mass erase function with OpenOCD, instead only
+        # chip-specific functions.  For that reason don't implement a default
+        # wipe and instead force cores to subclass and provide their own
+        # wipe functionality.
+        raise NotImplementedError
 
     def program(self, hex_files):
         """Program chip with provided list of hex files."""
         # Build list of commands to program hex files.
-        commands = []
-        commands.append('init')
-        commands.append('reset init')
-        commands.append('halt')
-        # On the nRF51822 it MUST run a mass_erase before programming the
-        # bootloader and softdevice areas of memory.
-        commands.append('{0} mass_erase'.format(self._flash_driver))
-        click.echo('WARNING: STLink programmer requires wiping flash memory before programming.  Flash memory will be wiped!')
-        # Program each hex file.  First program all the file up to the last one
-        # and mark them only to verify.
+        commands = [
+            'init',
+            'reset init',
+            'halt'
+        ]
+        # Program each hex file.
         for f in hex_files[:-1]:
             f = os.path.abspath(f)
             commands.append('program {0} verify'.format(f))
         # Program the last hex file and be careful to reset and exit at the end.
-        commands.append('program {0} verify reset'.format(hex_files[-1]))
+        commands.append('program {0} verify reset exit'.format(hex_files[-1]))
         # Run commands.
         self.run_commands(commands)
 

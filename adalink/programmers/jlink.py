@@ -16,6 +16,7 @@ import re
 import sys
 import subprocess
 import tempfile
+import threading
 import time
 
 from .base import Programmer
@@ -91,23 +92,22 @@ class JLink(Programmer):
         args = [self._jlink_path]
         args.extend(self._jlink_params)
         args.append(filename)
-        process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        if timeout_sec is None:
-            # No timeout specified, just wait indefinitely for the process to end.
-            process.wait()
-        else:
-            # Wait at most the timeout for the process to finish.
-            start = time.time()
-            while (time.time() - start) <= timeout_sec and process.returncode is None:
-                process.poll()
-                time.sleep(0)
-            # Check if process is still running and timeout exceeded.
-            if process.returncode is None:
-                # Kill the process and raise error.
-                process.kill()
-                raise AdaLinkError('JLinkExe process exceeded timeout!')
-        # Grab output of JLinkExe.
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if timeout_sec is not None:
+            # Use a timer to stop the subprocess if the timeout is exceeded.
+            # This helps prevent very subtle issues with deadlocks on reading
+            # subprocess output.  See: http://stackoverflow.com/a/10012262
+            def timeout_exceeded(p):
+                # Stop the subprocess and kill the whole program.
+                p.kill()
+                raise AdaLinkError('JLink process exceeded timeout!')
+            timeout = threading.Timer(timeout_sec, timeout_exceeded, [process])
+            timeout.start()
+        # Grab output of JLink.
         output, err = process.communicate()
+        if timeout_sec is not None:
+            # Stop timeout timer when communicate call returns.
+            timeout.cancel()
         logger.debug('JLink response: {0}'.format(output))
         return output
 
@@ -132,9 +132,10 @@ class JLink(Programmer):
         """
         # Build list of commands to read register.
         address = '{0:08X}'.format(address)  # Convert address value to hex string.
-        commands = []
-        commands.append('{0} {1} 1'.format(command, address))
-        commands.append('q')
+        commands = [
+            '{0} {1} 1'.format(command, address),
+            'q'
+        ]
         # Run command and parse output for register value.
         output = self.run_commands(commands)
         match = re.search('^{0} = (\S+)'.format(address), output,
@@ -154,26 +155,28 @@ class JLink(Programmer):
         programming if requested.
         """
         # Build list of commands to wipe memory.
-        commands = []
-        commands.append('r')      # Reset
-        commands.append('erase')  # Erase
-        commands.append('r')      # Reset
-        commands.append('q')      # Quit
+        commands = [
+            'r',      # Reset
+            'erase',  # Erase
+            'r',      # Reset
+            'q'       # Quit
+        ]
         # Run commands.
         self.run_commands(commands)
 
     def program(self, hex_files):
         """Program chip with provided list of hex files."""
         # Build list of commands to program hex files.
-        commands = []
-        commands.append('r')              # Reset
+        commands = ['r']   # Reset
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
             commands.append('loadfile "{0}"'.format(f))
-        commands.append('r')              # Reset
-        commands.append('g')              # Run the MCU
-        commands.append('q')              # Quit
+        commands.extend([
+            'r',  # Reset
+            'g',  # Run the MCU
+            'q'   # Quit
+        ])
         # Run commands.
         self.run_commands(commands)
 

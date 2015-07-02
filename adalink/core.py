@@ -14,7 +14,7 @@ class Core(click.Command):
         params = []
         params.append(click.Option(param_decls=['-p', '--programmer'],
                                    required=True,
-                                   type=click.Choice(self.programmers.keys()),
+                                   type=click.Choice(self.list_programmers()),
                                    help='Programmer type.'))
         params.append(click.Option(param_decls=['-w', '--wipe'],
                                    is_flag=True,
@@ -31,22 +31,35 @@ class Core(click.Command):
     
     def _callback(self, programmer, wipe, info, program_hex):
         # Create the programmer that was specified.
-        programmer = self.programmers.get(programmer)
-        self.programmer = programmer[0](*programmer[1], **programmer[2])
+        programmer = self.create_programmer(programmer)
         # Check that programmer is connected to device.
-        if not self.programmer.is_connected():
+        if not programmer.is_connected():
             raise AdaLinkError('Could not find {0}, is it connected?'.format(self.name))
         # Wipe flash memory if requested.
         if wipe:
-            self.programmer.wipe()
+            programmer.wipe()
         # Program the specified files.
         if len(program_hex) > 0:
-            self.programmer.program(program_hex)
+            programmer.program(program_hex)
         # Display information if requested.
         if info:
-            self.info()
+            self.info(programmer)
+
+    def list_programmers(self):
+        """Return a list of the programmer names supported by this CPU.  These
+        names will be exposed by the --programmer option values, and the chosen
+        one will be passed to create_programmer."""
+        raise NotImplementedError
+
+    def create_programmer(self, programmer):
+        """Create and return a programmer instance that will be used to program
+        the core.  Must be implemented by subclasses!  The p
+        """
+        raise NotImplementedError
             
-    def info(self):
-        """Display information about the device."""
+    def info(self, programmer):
+        """Display information about the device.  Will be passed an instance
+        of the programmer created by create_programmer.  The programmer can be
+        used to read memory and use it to display information."""
         # Default implementation does nothing, subclasses should override.
         pass

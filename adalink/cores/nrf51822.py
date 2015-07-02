@@ -1,6 +1,8 @@
 # nRF51822 core implementation
 #
 # Author: Tony DiCola
+import os
+
 import click
 
 from ..core import Core
@@ -35,50 +37,86 @@ SEGGER_LOOKUP = {
 }
 
 
+class STLink_nRF51822(STLink):
+    # nRF51822-specific STLink-based programmer.  Required to add custom
+    # wipe and erase before programming needed for the nRF51822 & OpenOCD.
+    
+    def __init__(self):
+        # Call base STLink initializer and set it up to program the nRF51822.
+        super(STLink_nRF51822, self).__init__(params='-f interface/stlink-v2.cfg -f target/nrf51.cfg')
+    
+    def wipe(self):
+        # Run OpenOCD commands to wipe nRF51822 memory.
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase',
+            'exit'
+        ]
+        self.run_commands(commands)
+
+    def program(self, hex_files):
+        # Program the nRF51822 with the provided hex files.  Note that programming
+        # the soft device and bootloader requires erasing the memory so it will
+        # always be done.
+        click.echo('WARNING: Flash memory must be erased before programming nRF51822 with the STLink!')
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase'
+        ]
+        # Program each hex file.
+        for f in hex_files[:-1]:
+            f = os.path.abspath(f)
+            commands.append('program {0} verify'.format(f))
+        # Program the last hex file and specify to reset and exit at the end.
+        commands.append('program {0} verify reset exit'.format(hex_files[-1]))
+        self.run_commands(commands)
+
+
 class nRF51822(Core):
     """Nordic nRF51822 CPU."""
     # Note that the docstring will be used as the short help description.
     
-    # Define the list of supported programmer types.  This should be a dict
-    # with the name of a programmer (as specified in the --programmer option)
-    # as the key and a tuple with the type, array of constructor positional
-    # args, and dict of constructor keyword args as the value.
-    programmers = {
-        'jlink': (
-            JLink, 
-            ['Cortex-M0 r0p0, Little endian'],  # String to expect when connected.
-            { 'params': '-device nrf51822_xxaa -if swd -speed 1000' }
-        ),
-        'stlink': (
-            STLink,
-            ['nrf51'],  # OpenOCD flash driver name for mass_erase.
-            { 'params': '-f interface/stlink-v2.cfg -f target/nrf51.cfg' }
-        )
-    }
-    
     def __init__(self):
-        # Call base class constructor.
+        # Call base class constructor--MUST be done!
         super(nRF51822, self).__init__()
     
-    def info(self):
+    def list_programmers(self):
+        """Return a list of the programmer names supported by this CPU."""
+        return ['jlink', 'stlink']
+    
+    def create_programmer(self, programmer):
+        """Create and return a programmer instance that will be used to program
+        the core.  Must be implemented by subclasses!
+        """
+        if programmer == 'jlink':
+            return JLink('Cortex-M0 r0p0, Little endian',
+                         params='-device nrf51822_xxaa -if swd -speed 1000')
+        elif programmer == 'stlink':
+            return STLink_nRF51822()
+    
+    def info(self, programmer):
         """Display info about the device."""
         # Get the HWID register value and print it.
         # Note for completeness there are also readmem32 and readmem8 functions 
         # available to use for reading memory values too.
-        hwid = self.programmer.readmem16(0x1000005C)
+        hwid = programmer.readmem16(0x1000005C)
         click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))))
         # Try to detect the Segger Device ID string and print it if using JLink
-        if isinstance(self.programmer, JLink):
-            hwid = self.programmer.readmem16(0x1000005C)
+        if isinstance(programmer, JLink):
+            hwid = programmer.readmem16(0x1000005C)
             hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
             if '0x' not in hwstring:
                 click.echo('Segger ID   : {0}'.format(hwstring))
         # Get the SD firmware version and print it.
-        sdid = self.programmer.readmem16(0x0000300C)
+        sdid = programmer.readmem16(0x0000300C)
         click.echo('SD Version  : {0}'.format(SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))))
         # Get the BLE Address and print it.
-        addr_high = (self.programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
-        addr_low  = self.programmer.readmem32(0x100000a4)
+        addr_high = (programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
+        addr_low  = programmer.readmem32(0x100000a4)
         click.echo('Device Addr : {0:02X}:{1:02X}:{2:02X}:{3:02X}:{4:02X}:{' \
                    '5:02X}'.format((addr_high >> 8) & 0xFF,
                                    (addr_high) & 0xFF,
@@ -87,6 +125,6 @@ class nRF51822(Core):
                                    (addr_low >> 8) & 0xFF,
                                    (addr_low & 0xFF)))
         # Get device ID.
-        did_high = self.programmer.readmem32(0x10000060)
-        did_low  = self.programmer.readmem32(0x10000064)
+        did_high = programmer.readmem32(0x10000060)
+        did_low  = programmer.readmem32(0x10000064)
         click.echo('Device ID   : {0:08X}{1:08X}'.format(did_high, did_low))

@@ -36,36 +36,31 @@ class LPC1343(Core):
     """NXP LPC1343 CPU."""
     # Note that the docstring will be used as the short help description.
     
-    # Define the list of supported programmer types.  This should be a dict
-    # with the name of a programmer (as specified in the --programmer option)
-    # as the key and a tuple with the type, array of constructor positional
-    # args, and dict of constructor keyword args as the value.
-    programmers = {
-        'jlink': (
-            JLink, 
-            ['Cortex-M3 r2p0, Little endian'],  # String to expect when connected.
-            { 'params': '-device LPC1343 -if swd -speed 1000' }
-        ),
-        # 'stlink': (
-        #     STLink,
-        #     [''],  # OpenOCD flash driver name for mass_erase.
-        #     { 'params': '-f interface/stlink-v2.cfg -f target/???' }
-        # )
-    }
-    
     def __init__(self):
         # Call base class constructor.
         super(LPC1343, self).__init__()
+
+    def list_programmers(self):
+        """Return a list of the programmer names supported by this CPU."""
+        return ['jlink']
     
-    def info(self):
+    def create_programmer(self, programmer):
+        """Create and return a programmer instance that will be used to program
+        the core.  Must be implemented by subclasses!
+        """
+        if programmer == 'jlink':
+            return JLink('Cortex-M3 r2p0, Little endian',
+                         params='-device LPC1343 -if swd -speed 1000')
+    
+    def info(self, programmer):
         """Display info about the device."""
         # DEVICE ID = APB0 Base (0x40000000) + SYSCON Base (0x48000) + 3F4
-        deviceid = self.programmer.readmem32(0x400483F4)
+        deviceid = programmer.readmem32(0x400483F4)
         click.echo('Device ID : {0}'.format(DEVICEID_CHIPNAME_LOOKUP.get(deviceid,
                                                    '0x{0:08X}'.format(deviceid))))
         # Try to detect the Segger Device ID string and print it if using JLink
-        if isinstance(self.programmer, JLink):
-            hwid = self.programmer.readmem32(0x400483F8)
+        if isinstance(programmer, JLink):
+            hwid = programmer.readmem32(0x400483F8)
             hwstring = DEVICEID_SEGGER_LOOKUP.get(hwid, '0x{0:08X}'.format(hwid))
             if '0x' not in hwstring:
                 click.echo('Segger ID : {0}'.format(hwstring))

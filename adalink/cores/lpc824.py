@@ -45,27 +45,22 @@ class LPC824(Core):
     """NXP LPC824 CPU."""
     # Note that the docstring will be used as the short help description.
     
-    # Define the list of supported programmer types.  This should be a dict
-    # with the name of a programmer (as specified in the --programmer option)
-    # as the key and a tuple with the type, array of constructor positional
-    # args, and dict of constructor keyword args as the value.
-    programmers = {
-        'jlink': (
-            JLink, 
-            ['Cortex-M0 r0p0, Little endian'],  # String to expect when connected.
-            { 'params': '-device LPC824M201 -if swd -speed 1000' }
-        ),
-        # 'stlink': (
-        #     STLink,
-        #     [''],  # OpenOCD flash driver name for mass_erase.
-        #     { 'params': '-f interface/stlink-v2.cfg -f target/???' }
-        # )
-    }
-    
     def __init__(self):
         # Call base class constructor.
         super(LPC824, self).__init__()
+
+    def list_programmers(self):
+        """Return a list of the programmer names supported by this CPU."""
+        return ['jlink']
     
+    def create_programmer(self, programmer):
+        """Create and return a programmer instance that will be used to program
+        the core.  Must be implemented by subclasses!
+        """
+        if programmer == 'jlink':
+            return JLink('Cortex-M0 r0p0, Little endian',
+                         params='-device LPC824M201 -if swd -speed 1000')
+
     def info(self):
         """Display info about the device."""
         deviceid = self.programmer.readmem32(0x400483F8)
