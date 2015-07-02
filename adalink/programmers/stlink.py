@@ -11,7 +11,7 @@ import platform
 import re
 import sys
 import subprocess
-import tempfile
+import threading
 import time
 
 from .base import Programmer
@@ -94,22 +94,21 @@ class STLink(Programmer):
             args.append(c)
         logger.debug('Running OpenOCD command: {0}'.format(' '.join(args)))
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if timeout_sec is None:
-            # No timeout specified, just wait indefinitely for the process to end.
-            process.wait()
-        else:
-            # Wait at most the timeout for the process to finish.
-            start = time.time()
-            while (time.time() - start) <= timeout_sec and process.returncode is None:
-                process.poll()
-                time.sleep(0)
-            # Check if process is still running and timeout exceeded.
-            if process.returncode is None:
-                # Kill the process and raise error.
-                process.kill()
+        if timeout_sec is not None:
+            # Use a timer to stop the subprocess if the timeout is exceeded.
+            # This helps prevent very subtle issues with deadlocks on reading
+            # subprocess output.  See: http://stackoverflow.com/a/10012262
+            def timeout_exceeded(p):
+                # Stop the subprocess and kill the whole program.
+                p.kill()
                 raise AdaLinkError('OpenOCD process exceeded timeout!')
+            timeout = threading.Timer(timeout_sec, timeout_exceeded, [process])
+            timeout.start()
         # Grab output of STLink.
         output, err = process.communicate()
+        if timeout_sec is not None:
+            # Stop timeout timer when communicate call returns.
+            timeout.cancel()
         logger.debug('OpenOCD response: {0}'.format(output))
         return output
 
@@ -157,11 +156,17 @@ class STLink(Programmer):
         commands.append('init')
         commands.append('reset init')
         commands.append('halt')
-        # Program each hex file.
-        for f in hex_files:
+        # On the nRF51822 it MUST run a mass_erase before programming the
+        # bootloader and softdevice areas of memory.
+        commands.append('{0} mass_erase'.format(self._flash_driver))
+        click.echo('WARNING: STLink programmer requires wiping flash memory before programming.  Flash memory will be wiped!')
+        # Program each hex file.  First program all the file up to the last one
+        # and mark them only to verify.
+        for f in hex_files[:-1]:
             f = os.path.abspath(f)
             commands.append('program {0} verify'.format(f))
-        commands.append('reset exit')
+        # Program the last hex file and be careful to reset and exit at the end.
+        commands.append('program {0} verify reset'.format(hex_files[-1]))
         # Run commands.
         self.run_commands(commands)
 
