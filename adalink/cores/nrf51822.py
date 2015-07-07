@@ -56,7 +56,7 @@ class STLink_nRF51822(STLink):
         ]
         self.run_commands(commands)
 
-    def program(self, hex_files):
+    def program(self, hex_files=[], bin_files=[]):
         # Program the nRF51822 with the provided hex files.  Note that programming
         # the soft device and bootloader requires erasing the memory so it will
         # always be done.
@@ -68,11 +68,15 @@ class STLink_nRF51822(STLink):
             'nrf51 mass_erase'
         ]
         # Program each hex file.
-        for f in hex_files[:-1]:
+        for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('program {0} verify'.format(f))
-        # Program the last hex file and specify to reset and exit at the end.
-        commands.append('program {0} verify reset exit'.format(hex_files[-1]))
+            commands.append('flash write_image {0} 0 ihex'.format(f))
+        # Program each bin file.
+        for f, addr in bin_files:
+            f = os.path.abspath(f)
+            commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
+        commands.append('reset run')
+        commands.append('exit')
         self.run_commands(commands)
 
 

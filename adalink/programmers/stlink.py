@@ -172,12 +172,13 @@ class STLink(Programmer):
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('flash write_image {0} ihex'.format(f))
+            commands.append('flash write_image {0} 0 ihex'.format(f))
         # Program each bin file.
         for f, addr in bin_files:
             f = os.path.abspath(f)
             commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
         commands.append('reset run')
+        commands.append('exit')
         self.run_commands(commands)
 
     def readmem32(self, address):

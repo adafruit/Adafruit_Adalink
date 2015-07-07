@@ -61,13 +61,8 @@ class Core(click.Command):
         # Wipe flash memory if requested.
         if wipe:
             programmer.wipe()
-        # Program the specified files.
-        if len(program_bin) > 0:
-            print 'Bangos'
-            for f, addr in program_bin:
-                print 'Talk', f, addr
-        if len(program_hex) > 0:
-            programmer.program(program_hex)
+        if len(program_hex) > 0 or len(program_bin) > 0:
+            programmer.program(program_hex, program_bin)
         # Display information if requested.
         if info:
             self.info(programmer)
