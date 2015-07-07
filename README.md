@@ -207,11 +207,61 @@ an STLink programmer on Windows you might not have the programmer setup with lib
 correctly.  Follow the steps in the OpenOCD Windows install section above to use
 Zadig tool to install a libusb driver for the STLink device.
 
-# Extending AdaLink With New CPUs
+# Extending AdaLink
 
 adalink is built with a modular structure in mind and can be extended to support
-new CPUs without much effort.  Look in the adalink/cores directory to see the
-abstract base class and concrete core implementation files.  To add a new core
-just add a new .py file in the directory, add to it a class that inherits from
-the Core base class, and fill in implementations of the abstract functions.
-See the nrf51822.py file for an example of a concrete implementation.
+new CPUs and programmer types without much effort.  
+
+## Adding new CPU cores
+
+Look in the adalink/core.py file to see the abstract base class that each core
+needs to inherit from and implement.  Each core implementation should be inside
+the adalink/cores folder and it will automatically be discovered by adalink at
+runtime.
+
+Each core needs to at a minimum implement these functions:
+
+-   list_programmers - This function should return a list of strings that define
+    the available programmers for the core.
+
+-   create_programmer - This function will be called with the chosen programmer
+    type (a string provided by list_programmers) and expects a programmer instance
+    to be created and returned.  For example if a user chooses the jlink programmer
+    option then create_programmer is called with 'jlink' as the parameter and the
+    function should return a programmer instance that uses the JLink to program
+    the core.
+
+-   info - This function is called if the user runs the `--info` option.  The
+    selected programmer instance is passed to the function and it can be used to
+    read parts of the core memory and display them.  It is entirely up to each
+    core to choose what information it reads and displays with the info function.
+    The default info implementation will do nothing.
+
+The logic to program and wipe the memory of a core is defined by the core's
+programmers.  There are generic JLink and STLink programmer implementations available
+and they can be subclassed by a core to provide a custom programmer that performs
+core-specific commands to program or wipe a core.  See the nRF51822 core for an
+example of building a STLink-specific core to program and wipe the nRF51822.
+
+## Adding new Programmers
+
+Look in the adalink/programmers/base.py file to see the abstract base class that
+a programmer needs to implement.  You can also see the provided concrete programmer
+implementations in the adalink/programmers directory, like jlink.py and stlink.py.
+
+Each programmer needs to implement the following functions:
+
+-   is_connected - This returns True if the programmers is connected to a CPU and
+    False if not connected.
+
+-   program - This function takes a list of hex file paths and will program them
+    to the CPU.
+
+-   wipe - This function will wipe the flash memory of the CPU.
+
+-   readmem32, readmem16, readmem8 - This function takes an address and returns
+    the 32, 16, or 8 bit value at that address.
+
+To add support for a programmer to a core make sure the core's list_programmers
+function returns a string that identifies the programmer, and the core's create_programmer
+function builds an instance of that programmer when requested.
