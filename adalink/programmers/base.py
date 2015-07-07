@@ -1,7 +1,7 @@
 # adalink Programmer Base Class
 #
 # Base class for an adalink CPU programmer.  Concrete implementations of
-# programmers should inherit from this class and provide implementations of 
+# programmers should inherit from this class and provide implementations of
 # functions below.
 #
 # Author: Tony DiCola
@@ -25,8 +25,11 @@ class Programmer(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def program(self, hex_files):
-        """Program chip with provided list of hex files."""
+    def program(self, hex_files=[], bin_files=[]):
+        """Program chip with provided list of hex and/or bin files.  Hex_files
+        is a list of paths to .hex files, and bin_files is a list of tuples with
+        the first value being the path to the .bin file and the second value
+        being the integer starting address for the bin file."""
         raise NotImplementedError
 
     @abc.abstractmethod

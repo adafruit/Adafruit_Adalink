@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 class STLink(Programmer):
-    
+
     # Name used to identify this programmer on the command line.
     name = 'stlink'
-    
+
     def __init__(self, openocd_exe=None, openocd_path='', params=None):
         """Create a new instance of the STLink communication class.  By default
         OpenOCD should be accessible in your system path and it will be used
@@ -63,15 +63,33 @@ class STLink(Programmer):
         self._test_openocd()
 
     def _test_openocd(self):
-        """Checks if OpenOCD is found in the system path or not."""
-        # Spawn OpenOCD process and capture its output.
-        args = [self._openocd_path, '--help']
+        """Checks if OpenOCD 0.9.0 is found in the system path or not."""
+        # Spawn OpenOCD process with --version and capture its output.
+        args = [self._openocd_path, '--version']
         try:
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            process.wait()
-        except OSError:
-            raise AdaLinkError("'{0}' missing. Is OpenOCD in your system "
-                               "path?".format(self._openocd_path))
+            output, err = process.communicate()
+            # Parse out version number from response.
+            match = re.search('^Open On-Chip Debugger (\S+)', output,
+                              re.IGNORECASE | re.MULTILINE)
+            if not match:
+                return
+            # Simple semantic version check to see if OpenOCD version is greater
+            # or equal to 0.9.0.
+            version = match.group(1).split('.')
+            if int(version[0]) > 0:
+                # Version 1 or greater, assume it's good (higher than 0.9.0).
+                return
+            if int(version[0]) == 0 and int(version[1]) >= 9:
+                # Version 0.9 or greater, assume it's good.
+                return
+            # Otherwise assume version is too old because it's below 0.9.0.
+            raise RuntimError
+        except Exception as ex:
+            print 'ERROR', ex
+            raise AdaLinkError('Failed to find OpenOCD 0.9.0 or greater!  Make '
+                               'sure OpenOCD 0.9.0 is installed and in your '
+                               'system path.')
 
     def run_commands(self, commands, timeout_sec=60):
         """Run the provided list of commands with OpenOCD.  Commands should be
@@ -124,12 +142,12 @@ class STLink(Programmer):
             return int(match.group(1), 16)
         else:
             raise AdaLinkError('Could not find expected memory value, are the STLink and board connected?')
-    
+
     def is_connected(self):
         """Return true if the device is connected to the programmer."""
         output = self.run_commands(['init', 'exit'])
         return output.find('Error:') == -1
-    
+
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
         programming if requested.
@@ -140,8 +158,11 @@ class STLink(Programmer):
         # wipe functionality.
         raise NotImplementedError
 
-    def program(self, hex_files):
-        """Program chip with provided list of hex files."""
+    def program(self, hex_files=[], bin_files=[]):
+        """Program chip with provided list of hex and/or bin files.  Hex_files
+        is a list of paths to .hex files, and bin_files is a list of tuples with
+        the first value being the path to the .bin file and the second value
+        being the integer starting address for the bin file."""
         # Build list of commands to program hex files.
         commands = [
             'init',
@@ -149,12 +170,14 @@ class STLink(Programmer):
             'halt'
         ]
         # Program each hex file.
-        for f in hex_files[:-1]:
+        for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('program {0} verify'.format(f))
-        # Program the last hex file and be careful to reset and exit at the end.
-        commands.append('program {0} verify reset exit'.format(hex_files[-1]))
-        # Run commands.
+            commands.append('flash write_image {0} ihex'.format(f))
+        # Program each bin file.
+        for f, addr in bin_files:
+            f = os.path.abspath(f)
+            commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
+        commands.append('reset run')
         self.run_commands(commands)
 
     def readmem32(self, address):

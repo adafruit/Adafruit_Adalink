@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 class JLink(Programmer):
-    
+
     # Name used to identify this programmer on the command line.
     name = 'jlink'
-    
+
     def __init__(self, connected, jlink_exe=None, jlink_path='', params=None):
         """Create a new instance of the JLink communication class.  By default
         JLinkExe should be accessible in your system path and it will be used
@@ -144,12 +144,12 @@ class JLink(Programmer):
             return int(match.group(1), 16)
         else:
             raise AdaLinkError('Could not find expected memory value, are the JLink and board connected?')
-    
+
     def is_connected(self):
         """Return true if the device is connected to the programmer."""
         output = self.run_commands(['q'])
         return output.find('Info: Found {0}'.format(self._connected)) != -1
-    
+
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
         programming if requested.
@@ -164,14 +164,21 @@ class JLink(Programmer):
         # Run commands.
         self.run_commands(commands)
 
-    def program(self, hex_files):
-        """Program chip with provided list of hex files."""
+    def program(self, hex_files=[], bin_files=[]):
+        """Program chip with provided list of hex and/or bin files.  Hex_files
+        is a list of paths to .hex files, and bin_files is a list of tuples with
+        the first value being the path to the .bin file and the second value
+        being the integer starting address for the bin file."""
         # Build list of commands to program hex files.
         commands = ['r']   # Reset
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
             commands.append('loadfile "{0}"'.format(f))
+        # Program each bin file.
+        for f, addr in bin_files:
+            f = os.path.abspath(f)
+            commands.append('loadbin "{0}" 0x{1:08X}'.format(f, addr))
         commands.extend([
             'r',  # Reset
             'g',  # Run the MCU

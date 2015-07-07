@@ -3,8 +3,25 @@ import click
 
 from .errors import AdaLinkError
 
+
+class HexInt(click.ParamType):
+    """Custom click parameter type for an integer which can be specified as a
+    hex value (starts with 0x...), octal (starts with 0), or decimal value.
+    """
+    name = 'integer (supports hex with 0x)'
+
+    def convert(self, value, param, ctx):
+        try:
+            return int(value, 0)
+        except ValueError:
+            self.fail('%s is not a valid integer' % value, param, ctx)
+
+    def __repr__(self):
+        return 'INT'
+
+
 class Core(click.Command):
-    
+
     def __init__(self, name=None):
         # Default to the name of the class if one isn't specified.
         if name is None:
@@ -26,10 +43,16 @@ class Core(click.Command):
                                    multiple=True,
                                    type=click.Path(exists=True),
                                    help='Program the specified .hex file. Can be specified multiple times.'))
+        params.append(click.Option(param_decls=['-b', '--program-bin'],
+                                   multiple=True,
+                                   nargs=2,
+                                   type=(click.Path(exists=True), HexInt()),
+                                   metavar='PATH ADDRESS',
+                                   help='Program the specified .bin file at the provided address. Address can be specified in hex, like 0x00FF.  Can be specified multiple times.'))
         super(Core, self).__init__(self.name, params=params, callback=self._callback,
                                    short_help=self.__doc__, help=self.__doc__)
-    
-    def _callback(self, programmer, wipe, info, program_hex):
+
+    def _callback(self, programmer, wipe, info, program_hex, program_bin):
         # Create the programmer that was specified.
         programmer = self.create_programmer(programmer)
         # Check that programmer is connected to device.
@@ -39,6 +62,10 @@ class Core(click.Command):
         if wipe:
             programmer.wipe()
         # Program the specified files.
+        if len(program_bin) > 0:
+            print 'Bangos'
+            for f, addr in program_bin:
+                print 'Talk', f, addr
         if len(program_hex) > 0:
             programmer.program(program_hex)
         # Display information if requested.
@@ -56,7 +83,7 @@ class Core(click.Command):
         the core.  Must be implemented by subclasses!  The p
         """
         raise NotImplementedError
-            
+
     def info(self, programmer):
         """Display information about the device.  Will be passed an instance
         of the programmer created by create_programmer.  The programmer can be
