@@ -58,6 +58,9 @@ should see a message such as:
     Successfully installed OpenOCD 0.9.0!
     =====================================
 
+Note that on a Raspberry Pi that installation will take around 30 minutes to an hour
+as the code is compiled.
+
 #### Mac OSX
 
 On Mac OSX the easiest way to install OpenOCD 0.9.0 is with the
