@@ -58,6 +58,9 @@ should see a message such as:
     Successfully installed OpenOCD 0.9.0!
     =====================================
 
+Note that on a Raspberry Pi that installation will take around 30 minutes to an hour
+as the code is compiled.
+
 #### Mac OSX
 
 On Mac OSX the easiest way to install OpenOCD 0.9.0 is with the
@@ -159,6 +162,11 @@ to perform, such as listing information or programming a hex file:
     -i, --info                      Display information about the core.
     -h, --program-hex PATH          Program the specified .hex file. Can be
                                     specified multiple times.
+    -b, --program-bin PATH ADDRESS  Program the specified .bin file at the
+                                    provided address. Address can be specified
+                                    in hex, like 0x00FF.  Can be specified
+                                    multiple times.
+
 
 To perform one of the actions invoke adalink with the core parameter, programmer
 option, and the desired action option.  For example to wipe a nRF51822 board and
