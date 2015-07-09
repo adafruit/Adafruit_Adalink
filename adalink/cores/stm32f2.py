@@ -1,6 +1,8 @@
 # STM32f2xx core implementation
 #
 # Author: Kevin Townsend
+import os
+
 import click
 
 from ..core import Core
@@ -32,18 +34,38 @@ DEVICEID_CHIPREV_LOOKUP = {
 }
 
 
+class STLink_STM32F2(STLink):
+    # STM32F2-specific STLink-based programmer.  Required to add custom mass
+    # erase command logic to wiping.
+
+    def __init__(self):
+        # Call base STLink initializer and set it up to program the STM32F2.
+        super(STLink_STM32F2, self).__init__(params='-f interface/stlink-v2.cfg -f target/stm32f2x.cfg')
+
+    def wipe(self):
+        # Run OpenOCD commands to wipe STM32F2 memory.
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'stm32f2x mass_erase',
+            'exit'
+        ]
+        self.run_commands(commands)
+
+
 class STM32F2(Core):
     """STMicro STM32F2 CPU."""
     # Note that the docstring will be used as the short help description.
-    
+
     def __init__(self):
         # Call base class constructor.
         super(STM32F2, self).__init__()
 
     def list_programmers(self):
         """Return a list of the programmer names supported by this CPU."""
-        return ['jlink']
-    
+        return ['jlink','stlink']
+
     def create_programmer(self, programmer):
         """Create and return a programmer instance that will be used to program
         the core.  Must be implemented by subclasses!
@@ -51,7 +73,9 @@ class STM32F2(Core):
         if programmer == 'jlink':
             return JLink('Cortex-M3 r2p0, Little endian',
                          params='-device STM32F205RG -if swd -speed 2000')
-    
+        elif programmer == 'stlink':
+            return STLink_STM32F2()
+
     def info(self, programmer):
         """Display info about the device."""
         # [0xE0042000] = CHIP_REVISION[31:16] + RESERVED[15:12] + DEVICE_ID[11:0]
