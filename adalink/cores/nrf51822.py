@@ -1,9 +1,13 @@
 # nRF51822 core implementation
 #
 # Author: Tony DiCola
-from ..jlink import JLink
-from ..core import Core
 import os
+
+import click
+
+from ..core import Core
+from ..programmers import JLink, STLink
+
 
 # CONFIGID register HW ID value to name mapping.
 # List of HWID can be found at https://www.nordicsemi.com/eng/nordic/Products/nRF51822/ATTN-51/41917
@@ -33,90 +37,98 @@ SEGGER_LOOKUP = {
 }
 
 
-class NRF51822(Core):
-    """nRF51822 core implementation."""
+class STLink_nRF51822(STLink):
+    # nRF51822-specific STLink-based programmer.  Required to add custom
+    # wipe and erase before programming needed for the nRF51822 & OpenOCD.
 
-    def __init__(self, args):
-        """Create instance of nRF51822 core."""
-        # Initialize communication with the JLink device using nRF51822-specific
-        # device type, SWD, and speed.
-        self._jlink = JLink(params='-device nrf51822_xxaa -if swd -speed 1000')
+    def __init__(self):
+        # Call base STLink initializer and set it up to program the nRF51822.
+        super(STLink_nRF51822, self).__init__(params='-f interface/stlink-v2.cfg -f target/nrf51.cfg')
 
     def wipe(self):
-        """Wipe clean the flash memory of the device.  Will happen before any
-        programming if requested.
-        """
-        # Build list of commands to wipe memory.
-        commands = []
-        commands.append('r')              # Reset
-        commands.append('sleep 500')      # Delay 500ms
-        commands.append('w4 4001e504 2')  # NVIC erase enabled
-        commands.append('w4 4001e50c 1')  # NVIC erase all
-        commands.append('sleep 1000')     # Delay 1000ms
-        commands.append('r')              # Reset
-        commands.append('q')              # Quit
-        # Run commands.
-        self._jlink.run_commands(commands)
+        # Run OpenOCD commands to wipe nRF51822 memory.
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase',
+            'exit'
+        ]
+        self.run_commands(commands)
 
-    def program(self, hex_files):
-        """Program chip with provided list of hex files."""
-        # Build list of commands to program hex files.
-        commands = []
-        commands.append('r')              # Reset
-        commands.append('w4 4001e504 1')  # NVIC write enabled
-        commands.append('r')              # Reset
-        commands.append('sleep 1000')     # Delay 1000ms
+    def program(self, hex_files=[], bin_files=[]):
+        # Program the nRF51822 with the provided hex files.  Note that programming
+        # the soft device and bootloader requires erasing the memory so it will
+        # always be done.
+        click.echo('WARNING: Flash memory will be erased before programming nRF51822 with the STLink!')
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase'
+        ]
         # Program each hex file.
         for f in hex_files:
             f = os.path.abspath(f)
-            commands.append('loadfile "{0}"'.format(f))
-        commands.append('sleep 1000')     # Delay 1000ms
-        commands.append('r')              # Reset
-        commands.append('q')              # Quit
-        # Run commands.
-        self._jlink.run_commands(commands)
+            commands.append('flash write_image {0} 0 ihex'.format(f))
+        # Program each bin file.
+        for f, addr in bin_files:
+            f = os.path.abspath(f)
+            commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
+        commands.append('reset run')
+        commands.append('exit')
+        self.run_commands(commands)
 
-    def detect_segger_device_id(self):
-        """Attempts to detect the Segger device ID string for the chip."""
-        hwid = self._jlink.readreg16(0x1000005C)
-        hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
-        if "0x" not in hwstring:
-            return hwstring
-        else:
-            return "Unknown!"
 
-    def info(self):
-        """Print information about the connected nRF51822."""
+class nRF51822(Core):
+    """Nordic nRF51822 CPU."""
+    # Note that the docstring will be used as the short help description.
+
+    def __init__(self):
+        # Call base class constructor--MUST be done!
+        super(nRF51822, self).__init__()
+
+    def list_programmers(self):
+        """Return a list of the programmer names supported by this CPU."""
+        return ['jlink', 'stlink']
+
+    def create_programmer(self, programmer):
+        """Create and return a programmer instance that will be used to program
+        the core.  Must be implemented by subclasses!
+        """
+        if programmer == 'jlink':
+            return JLink('Cortex-M0 r0p0, Little endian',
+                         params='-device nrf51822_xxaa -if swd -speed 1000')
+        elif programmer == 'stlink':
+            return STLink_nRF51822()
+
+    def info(self, programmer):
+        """Display info about the device."""
         # Get the HWID register value and print it.
-        # Note for completeness there are also readreg32 and readreg8 functions 
-        # available to use for reading register values too.
-        hwid = self._jlink.readreg16(0x1000005C)
-        print 'Hardware ID :', MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
-        # Try to detect the Segger Device ID string
-        seggerid = self.detect_segger_device_id()
-        print 'Segger ID   :', seggerid
+        # Note for completeness there are also readmem32 and readmem8 functions
+        # available to use for reading memory values too.
+        hwid = programmer.readmem16(0x1000005C)
+        click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))))
+        # Try to detect the Segger Device ID string and print it if using JLink
+        if isinstance(programmer, JLink):
+            hwid = programmer.readmem16(0x1000005C)
+            hwstring = SEGGER_LOOKUP.get(hwid, '0x{0:04X}'.format(hwid))
+            if '0x' not in hwstring:
+                click.echo('Segger ID   : {0}'.format(hwstring))
         # Get the SD firmware version and print it.
-        sdid = self._jlink.readreg16(0x0000300C)
-        print 'SD Version  :', SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))
+        sdid = programmer.readmem16(0x0000300C)
+        click.echo('SD Version  : {0}'.format(SD_LOOKUP.get(sdid, 'Unknown! (0x{0:04X})'.format(sdid))))
         # Get the BLE Address and print it.
-        addr_high = (self._jlink.readreg32(0x100000a8) & 0x0000ffff) | 0x0000c000
-        addr_low  = self._jlink.readreg32(0x100000a4)
-        print 'Device Addr : {0:02X}:{1:02X}:{2:02X}:{3:02X}:{4:02X}:{' \
-              '5:02X}'.format((addr_high >> 8) & 0xFF,
-                              (addr_high) & 0xFF,
-                              (addr_low >> 24) & 0xFF,
-                              (addr_low >> 16) & 0xFF,
-                              (addr_low >> 8) & 0xFF,
-                              (addr_low & 0xFF))
+        addr_high = (programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
+        addr_low  = programmer.readmem32(0x100000a4)
+        click.echo('Device Addr : {0:02X}:{1:02X}:{2:02X}:{3:02X}:{4:02X}:{' \
+                   '5:02X}'.format((addr_high >> 8) & 0xFF,
+                                   (addr_high) & 0xFF,
+                                   (addr_low >> 24) & 0xFF,
+                                   (addr_low >> 16) & 0xFF,
+                                   (addr_low >> 8) & 0xFF,
+                                   (addr_low & 0xFF)))
         # Get device ID.
-        did_high = self._jlink.readreg32(0x10000060)
-        did_low  = self._jlink.readreg32(0x10000064)
-        print 'Device ID   : {0:08X}{1:08X}'.format(did_high, did_low)
-
-    def is_connected(self):
-        """Return True if the CPU is connected, otherwise returns False."""
-        # Run JLink and verify output has expected CPU type found.  Only a 'q'
-        # command is sent to ensure J-Link runs and immediately quits (after
-        # printing some debug output).
-        output = self._jlink.run_commands(['q'])
-        return output.find('Info: Found Cortex-M0 r0p0, Little endian.') != -1
+        did_high = programmer.readmem32(0x10000060)
+        did_low  = programmer.readmem32(0x10000064)
+        click.echo('Device ID   : {0:08X}{1:08X}'.format(did_high, did_low))
