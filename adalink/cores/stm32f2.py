@@ -48,7 +48,7 @@ class STLink_STM32F2(STLink):
             'init',
             'reset init',
             'halt',
-            'stm32f2x mass_erase',
+            'stm32f2x mass_erase 0',
             'exit'
         ]
         self.run_commands(commands)
