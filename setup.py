@@ -12,6 +12,6 @@ setup(name              = 'adalink',
       description       = 'Cross platform tool for programming ARM chips using a Segger J-link or STLink V2 programmer (with OpenOCD).',
       license           = 'MIT',
       url               = 'https://github.com/adafruit/Adafruit_Adalink',
-      install_requires  = ['Click==4.0'],
+      install_requires  = ['Click'],
       entry_points      = {'console_scripts': ['adalink = adalink.main:main']},
       packages          = find_packages())
