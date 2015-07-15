@@ -15,11 +15,13 @@ install JLink and/or OpenOCD tools).
 
 On Linux and MacOS run:
 
-    sudo python setup.py install
+    sudo python setup.py develop
 
 On Windows run:
 
-    python setup.py install
+    python setup.py develop
+    
+Note that currently the setuptools 'develop' mode is used because of an issue/bug under investigation.
 
 ### Install J-Link Tools
 
