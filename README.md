@@ -21,7 +21,7 @@ On Windows run:
 
     python setup.py develop
     
-*Note that currently the setuptools 'develop' mode is used because of an issue/bug under investigation.*
+**Note that currently the setuptools 'develop' mode is used because of an issue/bug under investigation.**
 
 ### Install J-Link Tools
 
