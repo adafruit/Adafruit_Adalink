@@ -22,6 +22,10 @@ import time
 from .base import Programmer
 from ..errors import AdaLinkError
 
+# OSX GUI-based app does not has the same PATH as terminal-based
+if platform.system() == 'Darwin':
+    os.environ["PATH"] = os.environ["PATH"] + ':/usr/local/bin'
+
 
 logger = logging.getLogger(__name__)
 
