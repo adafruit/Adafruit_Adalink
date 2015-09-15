@@ -197,9 +197,10 @@ class STLink(Programmer):
         return self._readmem(address, 'mdb')
 
     def escape_path(self, path):
-        """Insert backslash escape characters in a path to ensure OpenOCD can 
-        read it on Windows.
+        """Escape the path with Tcl '{}' chars to prevent spaces,
+        backslashes, etc. from being misinterpreted.
         """
         # Replace '\' with '\\' but make sure to escape the string so Python
         # interprets it correctly.
-        return path.replace('\\', '\\\\')
+        #return path.replace('\\', '\\\\')
+        return '{{{0}}}'.format(path)
