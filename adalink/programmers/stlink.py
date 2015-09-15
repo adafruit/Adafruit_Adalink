@@ -200,7 +200,4 @@ class STLink(Programmer):
         """Escape the path with Tcl '{}' chars to prevent spaces,
         backslashes, etc. from being misinterpreted.
         """
-        # Replace '\' with '\\' but make sure to escape the string so Python
-        # interprets it correctly.
-        #return path.replace('\\', '\\\\')
         return '{{{0}}}'.format(path)
