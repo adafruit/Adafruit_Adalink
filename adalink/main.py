@@ -1,4 +1,6 @@
 import logging
+import os
+import platform
 
 import click
 
@@ -13,15 +15,20 @@ from .core import Core
 @click.pass_context
 def main(ctx, verbose):
     """AdaLink ARM CPU Programmer.
-    
+
     AdaLink can program different ARM CPUs using programming hardware such as
     the Segger JLink or STLink v2 (using OpenOCD).
-    
+
     To use the JLink programmer you MUST have Segger's JLink tools installed
     and in the system path.
-    
+
     To use the STLink programmer you MUST have OpenOCD 0.9.0+ installed.
     """
+    # Hack to work-around bug in Mac OSX Yosemite where launchd does not set
+    # the patch correctly for GUI apps.  See:
+    #   http://apple.stackexchange.com/questions/153402/in-osx-yosemite-why-can-i-set-many-environment-variables-for-gui-apps-but-cann
+    if platform.system() == 'Darwin':
+        os.environ["PATH"] = os.environ["PATH"] + ':/usr/local/bin'
     # Initialize context as empty dict to store data sent from core to commands.
     ctx.obj = {}
     # Enable verbose debug output if required.
