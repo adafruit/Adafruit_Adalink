@@ -69,11 +69,11 @@ class STLink_nRF51822(STLink):
         ]
         # Program each hex file.
         for f in hex_files:
-            f = os.path.abspath(f)
+            f = self.escape_path(os.path.abspath(f))
             commands.append('flash write_image {0} 0 ihex'.format(f))
         # Program each bin file.
         for f, addr in bin_files:
-            f = os.path.abspath(f)
+            f = self.escape_path(os.path.abspath(f))
             commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
         commands.append('reset run')
         commands.append('exit')

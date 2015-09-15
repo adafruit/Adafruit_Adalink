@@ -174,11 +174,11 @@ class STLink(Programmer):
         ]
         # Program each hex file.
         for f in hex_files:
-            f = os.path.abspath(f)
+            f = self.escape_path(os.path.abspath(f))
             commands.append('flash write_image {0} 0 ihex'.format(f))
         # Program each bin file.
         for f, addr in bin_files:
-            f = os.path.abspath(f)
+            f = self.escape_path(os.path.abspath(f))
             commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
         commands.append('reset run')
         commands.append('exit')
@@ -195,3 +195,11 @@ class STLink(Programmer):
     def readmem8(self, address):
         """Read a 8-bit value from the provided memory address."""
         return self._readmem(address, 'mdb')
+
+    def escape_path(self, path):
+        """Insert backslash escape characters in a path to ensure OpenOCD can 
+        read it on Windows.
+        """
+        # Replace '\' with '\\' but make sure to escape the string so Python
+        # interprets it correctly.
+        return path.replace('\\', '\\\\')
