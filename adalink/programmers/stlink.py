@@ -106,9 +106,10 @@ class STLink(Programmer):
         args.extend(self._openocd_params)
         for c in commands:
             args.append('-c')
-            args.append(c)
-        logger.debug('Running OpenOCD command: {0}'.format(' '.join(args)))
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            args.append('"{0}"'.format(c))
+        args = ' '.join(args)
+        logger.debug('Running OpenOCD command: {0}'.format(args))
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         if timeout_sec is not None:
             # Use a timer to stop the subprocess if the timeout is exceeded.
             # This helps prevent very subtle issues with deadlocks on reading
