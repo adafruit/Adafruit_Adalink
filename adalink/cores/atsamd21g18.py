@@ -8,6 +8,7 @@ import os
 import click
 
 from ..core import Core
+from ..errors import AdaLinkError
 from ..programmers import JLink, STLink
 
 
@@ -47,9 +48,25 @@ class STLink_ATSAMD21G18(STLink):
         for f, addr in bin_files:
             f = self.escape_path(os.path.abspath(f))
             commands.append('load_image {0} 0x{1:08X} bin'.format(f, addr))
+        # Verify each hex file.
+        for f in hex_files:
+            f = self.escape_path(os.path.abspath(f))
+            commands.append('verify_image {0} 0 ihex'.format(f))
+        # Verify each bin file.
+        for f, addr in bin_files:
+            f = self.escape_path(os.path.abspath(f))
+            commands.append('verify_image {0} 0x{1:08X} bin'.format(f, addr))
         commands.append('reset run')
         commands.append('exit')
-        self.run_commands(commands)
+        # Run commands.
+        output = self.run_commands(commands)
+        # Check that expected number of files were verified.  Look for output lines
+        # that start with 'verified ' to signal OpenOCD output that the verification
+        # succeeded.  Count up these lines and expect they match the number of
+        # programmed files.
+        verified = len(filter(lambda x: x.startswith('verified '), output.splitlines()))
+        if verified != (len(hex_files) + len(bin_files)):
+            raise AdaLinkError('Failed to verify all files were programmed!')
 
 
 class ATSAMD21G18(Core):
