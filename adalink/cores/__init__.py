@@ -1,18 +1,16 @@
 # adalink.cores Module
 #
-# Import all python files in the directory to simplify adding a new core.
-# Just drop a new core .py file in the directory and it will be picked up 
-# automatically.
+# Import all python files in the directory to make them available to use.
 #
 # Author: Tony DiCola
-import os
 
-
-# Import all python files in the cores directory by setting them to the __all__
-# global which tells python the modules to load.  Grabs a list of all files in
-# the directory and filters down to just the names (without .py extensions) of
-# python files that don't start with '__' (which are module metadata that should
-# be ignored.
-__all__ = map(lambda x: x[:-3],
-              filter(lambda x: not x.startswith('__') and x.lower().endswith('.py'),
-                     os.listdir(__path__[0])))
+# Import all python files in the cores directory manually.  This is a change
+# from previous behavior which automatically imported cores, but relied on
+# somewhat brittle behavior for finding the path of the current script (and
+# would have problems with py2exe).  Since dynamically loading new cores
+# isn't really that important, just import each one explicitly:
+import atsamd21g18
+import lpc824
+import lpc1343
+import nrf51822
+import stm32f2

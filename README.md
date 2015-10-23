@@ -3,15 +3,54 @@
 Tool to automate flashing ARM CPUs with new program code using a Segger J-link
 or STMicro STLink V2 device.
 
+Currently supported cores:
+*   atsamd21g18
+*   lpc824
+*   lpc1343
+*   nrf51822
+*   stm32f2
+
 ## Installation
 
-For ease of use you can install the software so that it is available to run globally
-from within your terminal by following the steps below.  However if you'd like to
-more easily distribute and run the code without requiring an installation, skip down
-to 'Running Without Installation' steps below (note that you will still need to
-install JLink and/or OpenOCD tools).
+There are three options for installing and using adalink:
 
-### Install
+*   Use a pre-built standalone binary distribution.  See the releases tab for
+    the current release for each platform (Windows, OSX).  You don't need
+    Python installed for this option to work, but you will need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  You will also need to manually add the downloaded
+    adalink executable to your system path so the command is available from any
+    terminal.
+
+*   Download the source and run it directly with Python.  This is a good option
+    if the binary distribution doesn't work and you don't want to install the
+    code globally.  You will also need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  Jump to the [Running Without Installation](#running-without-installation)
+    section to learn more about this option.
+
+*   Install from source using the setup.py script.  This is useful if you're
+    developing or modifying adalink code.  You will need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  Jump to the [Install from Source](#install-from-source)
+    section to learn more about this option.
+
+Once you've installed or downloaded a release of adalink see the [Usage](#usage)
+section for information on how to use it.
+
+### Running Without Installation
+
+To run the tool without having to install it simply clone the repository, navigate
+to the repository's folder in a terminal (i.e. the directory with the setup.py file)
+and run:
+
+    python -m adalink.main
+
+This will invoke the program as if you ran the adalink command.  All the command
+line parameters, etc. are the same and specified after the `-m adalink.main` part of
+the command.
+
+Note that you will still need JLink and/or OpenOCD executables in your path--see
+the Install JLink and Install OpenOCD sections above.
+
+### Install from Source
 
 On Linux and MacOS run:
 
@@ -20,7 +59,7 @@ On Linux and MacOS run:
 On Windows run:
 
     python setup.py develop
-    
+
 **Note that currently the setuptools 'develop' mode is used because of an issue/bug under investigation.**
 
 ### Install J-Link Tools
@@ -95,7 +134,10 @@ driver installation only needs to be done once for the STLink device.
 
 ### Uninstall
 
-To remove the tool you'll need to have the pip python package manager installed.
+If you installed adalink using its setup.py you can uninstall it using the pip
+package manager.  Note that if you are running adalink from a stand-alone binary
+or directly from its source then you just need to delete the files to remove it.
+
 You can install pip by downloading and executing the [get-pip.py script here](https://bootstrap.pypa.io/get-pip.py).
 
 Then run the following to uninstall adalink:
@@ -103,37 +145,6 @@ Then run the following to uninstall adalink:
     sudo pip uninstall adalink
 
 Note on Windows the sudo part of the command should be omitted.
-
-### Running Without Installation
-
-To run the tool without having to install it simply clone the repository, navigate
-to the repository's folder in a terminal (i.e. the directory with the setup.py file)
-and run:
-
-    python -m adalink.main
-
-This will invoke the program as if you ran the adalink command.  All the command
-line parameters, etc. are the same and specified after the `-m adalink.main` part of
-the command.
-
-Note that you will still need JLink and/or OpenOCD executables in your path--see
-the Install JLink and Install OpenOCD sections above.
-
-### Development Install (run from this folder)
-
-You can also install in `develop` mode which will create a symlink to the code in
-this folder, meaning any changes made to the python code will take effect when
-running adalink.  This is useful if you're modifying or extending adalink, but
-if you only wish to use adalink then install it using the normal installation
-steps above and skip this section.
-
-On Linux and MacOS run:
-
-    sudo python setup.py develop
-
-On Windows run
-
-    python setup.py develop
 
 ## Usage
 
@@ -217,17 +228,17 @@ an STLink programmer on Windows you might not have the programmer setup with lib
 correctly.  Follow the steps in the OpenOCD Windows install section above to use
 Zadig tool to install a libusb driver for the STLink device.
 
-# Extending AdaLink
+## Extending AdaLink
 
 adalink is built with a modular structure in mind and can be extended to support
 new CPUs and programmer types without much effort.  
 
-## Adding new CPU cores
+### Adding new CPU cores
 
 Look in the adalink/core.py file to see the abstract base class that each core
 needs to inherit from and implement.  Each core implementation should be inside
-the adalink/cores folder and it will automatically be discovered by adalink at
-runtime.
+the adalink/cores folder and the core should be imported explicitly inside the
+adalink/cores/__init__.py file.
 
 Each core needs to at a minimum implement these functions:
 
@@ -253,7 +264,7 @@ and they can be subclassed by a core to provide a custom programmer that perform
 core-specific commands to program or wipe a core.  See the nRF51822 core for an
 example of building a STLink-specific core to program and wipe the nRF51822.
 
-## Adding new Programmers
+### Adding new Programmers
 
 Look in the adalink/programmers/base.py file to see the abstract base class that
 a programmer needs to implement.  You can also see the provided concrete programmer
@@ -275,3 +286,20 @@ Each programmer needs to implement the following functions:
 To add support for a programmer to a core make sure the core's list_programmers
 function returns a string that identifies the programmer, and the core's create_programmer
 function builds an instance of that programmer when requested.
+
+### Producing Binary releases
+
+To build a standalone binary release for Windows, OSX, etc. you can use the
+[PyInstaller](http://www.pyinstaller.org/) tool.  This tool will package up the
+adalink source into an executable that can run without python or other dependencies
+being installed.
+
+To produce the binary first install PyInstaller (typically using pip).  Then
+download this source repository for adalink, open a terminal, navigate to the
+root of the source and run:
+
+    pyinstaller --onefile adalink.py
+
+This will point PyInstaller at simple adalink bootstrap script which helps it
+find all the dependencies and package up a standalone executable.  When PyInstaller
+finishes it will output the executable in the `dist` directory.
