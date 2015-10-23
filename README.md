@@ -4,15 +4,10 @@ Tool to automate flashing ARM CPUs with new program code using a Segger J-link
 or STMicro STLink V2 device.
 
 Currently supported cores:
-
 *   atsamd21g18
-
 *   lpc824
-
 *   lpc1343
-
 *   nrf51822
-
 *   stm32f2
 
 ## Installation
@@ -21,23 +16,23 @@ There are three options for installing and using adalink:
 
 *   Use a pre-built standalone binary distribution.  See the releases tab for
     the current release for each platform (Windows, OSX).  You don't need
-    Python installed for this option to work, but you will need [JLink](#Install-J-Link-Tools) and/or
-    [OpenOCD](#Install-OpenOCD) tools installed.  You will also need to manually add the downloaded
+    Python installed for this option to work, but you will need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  You will also need to manually add the downloaded
     adalink executable to your system path so the command is available from any
     terminal.
 
 *   Download the source and run it directly with Python.  This is a good option
     if the binary distribution doesn't work and you don't want to install the
-    code globally.  You will also need [JLink](#Install-J-Link-Tools) and/or
-    [OpenOCD](#Install-OpenOCD) tools installed.  Jump to the [Running Without Installation](#Running-Without-Installation)
+    code globally.  You will also need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  Jump to the [Running Without Installation](#running-without-installation)
     section to learn more about this option.
 
 *   Install from source using the setup.py script.  This is useful if you're
-    developing or modifying adalink code.  You will need [JLink](#Install-J-Link-Tools) and/or
-    [OpenOCD](#Install-OpenOCD) tools installed.  Jump to the [Install from Source](#Install-from-Source)
+    developing or modifying adalink code.  You will need [JLink](#install-j-link-tools) and/or
+    [OpenOCD](#install-openocd) tools installed.  Jump to the [Install from Source](#install-from-source)
     section to learn more about this option.
 
-Once you've installed or downloaded a release of adalink see the [Usage](#Usage)
+Once you've installed or downloaded a release of adalink see the [Usage](#usage)
 section for information on how to use it.
 
 ### Running Without Installation
