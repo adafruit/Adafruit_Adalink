@@ -151,8 +151,8 @@ class JLink(Programmer):
 
     def is_connected(self):
         """Return true if the device is connected to the programmer."""
-        output = self.run_commands(['q'])
-        return output.find('Info: Found {0}'.format(self._connected)) != -1
+        output = self.run_commands(['connect', 'q'])
+        return output.find('Found {0}'.format(self._connected)) != -1
 
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any
