@@ -80,6 +80,31 @@ class STLink_nRF51822(STLink):
         self.run_commands(commands)
 
 
+class nRF51822_JLink(JLink):
+    # nRF51822-specific JLink programmer, required to add custom wipe command
+    # for the chip.
+
+    def __init__(self):
+        # Call base STLink initializer and set it up to program the nRF51822.
+        super(nRF51822_JLink, self).__init__('Cortex-M0 r0p0, Little endian',
+            params='-device nrf51822_xxaa -if swd -speed 1000')
+
+    def wipe(self):
+        # Run JLink commands to wipe nRF51822 memory.
+        # See this bug for more details on the erase commands:
+        #   https://github.com/adafruit/Adafruit_Adalink/issues/17
+        commands = [
+            'w4 4001E504, 2', # Enable erase
+            'w4 4001e50C, 1', # Erase memory
+            'sleep 100',      # Wait for erase the complete
+            'w4 4001e504, 1', # Enable writing
+            'sleep 100',      # Wait again.
+            'r',              # Reset
+            'q'               # Quit
+        ]
+        self.run_commands(commands)
+
+
 class nRF51822(Core):
     """Nordic nRF51822 CPU."""
     # Note that the docstring will be used as the short help description.
@@ -97,8 +122,7 @@ class nRF51822(Core):
         the core.  Must be implemented by subclasses!
         """
         if programmer == 'jlink':
-            return JLink('Cortex-M0 r0p0, Little endian',
-                         params='-device nrf51822_xxaa -if swd -speed 1000')
+            return nRF51822_JLink()
         elif programmer == 'stlink':
             return STLink_nRF51822()
 
