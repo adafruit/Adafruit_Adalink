@@ -50,10 +50,12 @@ class RasPi2_nRF51822(RasPi2):
         # Run OpenOCD commands to wipe nRF51822 memory.
         commands = [
             'init',
-            'reset init',
+            'reset',
             'halt',
             'nrf51 mass_erase',
-            'exit'
+            'sleep 50',
+            'exit',
+            'shutdown'
         ]
         self.run_commands(commands)
 
@@ -64,9 +66,10 @@ class RasPi2_nRF51822(RasPi2):
         click.echo('WARNING: Flash memory will be erased before programming nRF51822 with the RasPi2!')
         commands = [
             'init',
-            'reset init',
+            'reset',
             'halt',
-            'nrf51 mass_erase'
+            'nrf51 mass_erase',
+            'sleep 50'
         ]
         # Program each hex file.
         for f in hex_files:
@@ -78,8 +81,8 @@ class RasPi2_nRF51822(RasPi2):
             commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
         commands.append('reset run')
         commands.append('exit')
+        commands.append('shutdown')
         self.run_commands(commands)
-
 
 class STLink_nRF51822(STLink):
     # nRF51822-specific STLink-based programmer.  Required to add custom
