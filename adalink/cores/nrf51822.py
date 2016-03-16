@@ -6,7 +6,7 @@ import os
 import click
 
 from ..core import Core
-from ..programmers import JLink, STLink
+from ..programmers import JLink, STLink, Raspi2
 
 
 # CONFIGID register HW ID value to name mapping.
