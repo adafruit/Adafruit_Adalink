@@ -17,12 +17,14 @@ def main(ctx, verbose):
     """AdaLink ARM CPU Programmer.
 
     AdaLink can program different ARM CPUs using programming hardware such as
-    the Segger JLink or STLink v2 (using OpenOCD).
+    the Segger JLink, Native Raspberry Pi or STLink v2 (using OpenOCD).
 
     To use the JLink programmer you MUST have Segger's JLink tools installed
     and in the system path.
 
     To use the STLink programmer you MUST have OpenOCD 0.9.0+ installed.
+
+    To use the Raspi programmer you MUST have OpenOCD 0.9.0+ installed on the Pi with --enable-bcm2835gpio compiled.
     """
     # Hack to work-around bug in Mac OSX Yosemite where launchd does not set
     # the patch correctly for GUI apps.  See:
