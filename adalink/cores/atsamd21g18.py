@@ -76,7 +76,7 @@ class RasPi2_ATSAMD21G18(RasPi2):
     def __init__(self):
         # Call base Raspi initializer and set it up to program the ATSAMD21G18.
         super(RasPi2_ATSAMD21G18, self).__init__(params='-f interface/raspberrypi2-native.cfg ' \
-            '-c "set CHIPNAME at91samd21g18; set ENDIAN little; set CPUTAPID 0x0bc11477; source [find target/at91samdXX.cfg]"')
+            '-c "transport select swd; set CHIPNAME at91samd21g18; adapter_nsrst_delay 100; adapter_nsrst_assert_width 100; source [find target/at91samdXX.cfg]"')
 
     def wipe(self):
         # Run OpenOCD command to wipe ATSAMD21G18 memory.
