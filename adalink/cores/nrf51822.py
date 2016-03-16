@@ -37,6 +37,50 @@ SEGGER_LOOKUP = {
 }
 
 
+class RasPi2_nRF51822(RasPi2):
+    # nRF51822-specific RasPi2-based programmer.  Required to add custom
+    # wipe and erase before programming needed for the nRF51822 & OpenOCD.
+
+    def __init__(self):
+        # Call base Raspi initializer and set it up to program the nRF51822.
+        super(RasPi2_nRF51822, self).__init__(params='-f interface/raspberrypi2-native.cfg ' \
+            '-c "transport select swd; set WORKAREASIZE 0; adapter_nsrst_delay 100; adapter_nsrst_assert_width 100; source [find target/nrf51.cfg]"')
+
+    def wipe(self):
+        # Run OpenOCD commands to wipe nRF51822 memory.
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase',
+            'exit'
+        ]
+        self.run_commands(commands)
+
+    def program(self, hex_files=[], bin_files=[]):
+        # Program the nRF51822 with the provided hex files.  Note that programming
+        # the soft device and bootloader requires erasing the memory so it will
+        # always be done.
+        click.echo('WARNING: Flash memory will be erased before programming nRF51822 with the RasPi2!')
+        commands = [
+            'init',
+            'reset init',
+            'halt',
+            'nrf51 mass_erase'
+        ]
+        # Program each hex file.
+        for f in hex_files:
+            f = self.escape_path(os.path.abspath(f))
+            commands.append('flash write_image {0} 0 ihex'.format(f))
+        # Program each bin file.
+        for f, addr in bin_files:
+            f = self.escape_path(os.path.abspath(f))
+            commands.append('flash write_image {0} 0x{1:08X} bin'.format(f, addr))
+        commands.append('reset run')
+        commands.append('exit')
+        self.run_commands(commands)
+
+
 class STLink_nRF51822(STLink):
     # nRF51822-specific STLink-based programmer.  Required to add custom
     # wipe and erase before programming needed for the nRF51822 & OpenOCD.
@@ -115,7 +159,7 @@ class nRF51822(Core):
 
     def list_programmers(self):
         """Return a list of the programmer names supported by this CPU."""
-        return ['jlink', 'stlink']
+        return ['jlink', 'stlink', 'raspi2']
 
     def create_programmer(self, programmer):
         """Create and return a programmer instance that will be used to program
@@ -125,6 +169,8 @@ class nRF51822(Core):
             return nRF51822_JLink()
         elif programmer == 'stlink':
             return STLink_nRF51822()
+        elif programmer == 'raspi2':
+            return RasPi2_nRF51822()
 
     def info(self, programmer):
         """Display info about the device."""
