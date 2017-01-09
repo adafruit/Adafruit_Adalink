@@ -74,7 +74,7 @@ class nRF52832(Core):
         # Get the HWID register value and print it.
         # Note for completeness there are also readmem32 and readmem8 functions
         # available to use for reading memory values too.
-        hwid = programmer.readmem16(0x10000100)
+        hwid = programmer.readmem32(0x10000100)
         click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:05X}'.format(hwid))))
         # Get the BLE Address and print it.
         addr_high = (programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
