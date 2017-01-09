@@ -19,6 +19,26 @@ MCU_LOOKUP = {
     0xFFFFFFFF: 'Unspecified'
 }
 
+# Package ID value to name mapping.
+PACKAGE_LOOKUP = {
+    0x2000: 'QFxx - 48-pin QFN',
+    0x2001: 'CIxx - 7x8 WLCSP 56 balls'
+}
+
+# SRAM ID value to name mapping.
+SRAM_LOOKUP = {
+    0x10: '16 KB SRAM',
+    0x20: '32 KB SRAM',
+    0x40: '64 KB SRAM'
+}
+
+# FLASH size value to name mapping.
+FLASH_LOOKUP = {
+    0x80:  '128 KB Flash',
+    0x100: '256 KB Flash',
+    0x200: '512 KB Flash'
+}
+
 # SD ID value to name mapping.
 SD_LOOKUP = {
     0xFFFF: 'None'
@@ -75,7 +95,31 @@ class nRF52832(Core):
         # Note for completeness there are also readmem32 and readmem8 functions
         # available to use for reading memory values too.
         hwid = programmer.readmem32(0x10000100)
-        click.echo('Hardware ID : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:05X}'.format(hwid))))
+        click.echo('Hardware ID : 0x{0:05X}'.format(hwid))
+        # Get the chip variant
+        variant = programmer.readmem32(0x10000104)
+        click.echo('Variant     : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:05X}'.format(variant))))
+        # Get the Package ID
+        package = programmer.readmem16(0x10000108)
+        pkgstring = PACKAGE_LOOKUP.get(package, '0x{0:04X}'.format(package))
+        if '0x' not in pkgstring:
+            click.echo('Package     : {0}'.format(pkgstring))
+        else:
+            click.echo('Package     : 0x{0:04X}'.format(package))
+        # Get the SRAM
+        sram = programmer.readmem8(0x1000010C)
+        sramstring = SRAM_LOOKUP.get(sram, '0x{0:02X}'.format(package))
+        if '0x' not in sramstring:
+            click.echo('SRAM        : {0}'.format(sramstring))
+        else:
+            click.echo('SRAM        : 0x{0:02X}'.format(sram))
+        # Get the Flash size
+        flash = programmer.readmem16(0x10000110)
+        flashstring = FLASH_LOOKUP.get(flash, '0x{0:04X}'.format(package))
+        if '0x' not in flashstring:
+            click.echo('Flash       : {0}'.format(flashstring))
+        else:
+            click.echo('Flash       : 0x{0:04X}'.format(flash))
         # Get the BLE Address and print it.
         addr_high = (programmer.readmem32(0x100000a8) & 0x0000ffff) | 0x0000c000
         addr_low  = programmer.readmem32(0x100000a4)
