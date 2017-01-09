@@ -13,4 +13,5 @@ import atsamd21g18
 import lpc824
 import lpc1343
 import nrf51822
+import nrf52832
 import stm32f2
