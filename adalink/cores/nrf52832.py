@@ -134,3 +134,9 @@ class nRF52832(Core):
         did_high = programmer.readmem32(0x10000060)
         did_low  = programmer.readmem32(0x10000064)
         click.echo('Device ID   : {0:08X}{1:08X}'.format(did_high, did_low))
+        # Check the UICR NFCPINS register to determine NFC pin status
+        nfcpins = programmer.readmem32(0x1000120C)
+        if nfcpins == 0xFFFFFFFF:
+            click.echo('NFC Pins    : NFC')
+        else:
+            click.echo('NFC Pins    : GPIO')
