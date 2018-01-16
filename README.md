@@ -8,6 +8,7 @@ Currently supported cores:
 *   lpc824
 *   lpc1343
 *   nrf51822
+*   nrf52832
 *   stm32f2
 
 ## Installation
