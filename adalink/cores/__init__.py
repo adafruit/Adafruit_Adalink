@@ -14,4 +14,5 @@ import lpc824
 import lpc1343
 import nrf51822
 import nrf52832
+import nrf52840
 import stm32f2

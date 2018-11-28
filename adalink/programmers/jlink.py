@@ -124,6 +124,7 @@ class JLink(Programmer):
         """
         # Create temporary file to hold script.
         script_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        # commands.insert(0, 'connect\n')
         commands = '\n'.join(commands)
         script_file.write(commands)
         script_file.close()
