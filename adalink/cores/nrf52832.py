@@ -98,7 +98,7 @@ class nRF52832(Core):
         click.echo('Hardware ID : 0x{0:05X}'.format(hwid))
         # Get the chip variant
         variant = programmer.readmem32(0x10000104)
-        click.echo('Variant     : {0}'.format(MCU_LOOKUP.get(hwid, '0x{0:05X}'.format(variant))))
+        click.echo('Variant     : {0}'.format(MCU_LOOKUP.get(variant, '0x{0:05X}'.format(variant))))
         # Get the Package ID
         package = programmer.readmem16(0x10000108)
         pkgstring = PACKAGE_LOOKUP.get(package, '0x{0:04X}'.format(package))
