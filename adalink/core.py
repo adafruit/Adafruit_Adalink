@@ -88,7 +88,8 @@ class Core(click.Command):
         # Read and print out memory if requested.
         # First make sure only one read memory command was requested (otherwise
         # it's ambiguous which one to use or the order to return results).
-        if len(filter(lambda x: x is not None, [read_mem_8, read_mem_16, read_mem_32])) > 1:
+        f = [x for x in [read_mem_8, read_mem_16, read_mem_32] if x != None]
+        if len(f) > 1:
             raise AdaLinkError('Only one read memory command can be specified at a time.')
         if read_mem_8 is not None:
             value = programmer.readmem8(read_mem_8)

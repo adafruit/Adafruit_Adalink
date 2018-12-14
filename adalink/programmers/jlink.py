@@ -57,7 +57,7 @@ class JLink(Programmer):
             system = platform.system()
             if system == 'Linux':
                 jlink_exe = 'JLinkExe'
-            elif system == 'Windows':
+            elif system == 'Windows' or ("MINGW" in system):
                 jlink_exe = 'JLink.exe'
             elif system == 'Darwin':
                 jlink_exe = 'JLinkExe'
@@ -113,7 +113,7 @@ class JLink(Programmer):
             # Stop timeout timer when communicate call returns.
             timeout.cancel()
         logger.debug('JLink response: {0}'.format(output))
-        return output
+        return output.decode('utf-8')
 
     def run_commands(self, commands, timeout_sec=60):
         """Run the provided list of commands with JLinkExe.  Commands should be
@@ -153,7 +153,8 @@ class JLink(Programmer):
     def is_connected(self):
         """Return true if the device is connected to the programmer."""
         output = self.run_commands(['connect', 'q'])
-        return output.find('Found {0}'.format(self._connected)) != -1
+        findstr = 'Found {0}'.format(self._connected)
+        return output.find(findstr) != -1
 
     def wipe(self):
         """Wipe clean the flash memory of the device.  Will happen before any

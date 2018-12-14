@@ -89,7 +89,7 @@ class STLink(Programmer):
             # Otherwise assume version is too old because it's below 0.9.0.
             raise RuntimError
         except Exception as ex:
-            print 'ERROR', ex
+            print('ERROR', ex)
             raise AdaLinkError('Failed to find OpenOCD 0.9.0 or greater!  Make '
                                'sure OpenOCD 0.9.0 is installed and in your '
                                'system path.')
